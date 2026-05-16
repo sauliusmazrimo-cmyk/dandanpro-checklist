@@ -28,22 +28,20 @@ const SOURCE_HEADER_ROWS = 1;
 const INSTRUCTORS = [
   "Kęstutis Mikelevičius",
   "Jevgenij Burgan",
-  "Vilma Rustamova",
-];
+  ];
 
 /** Instruktorių el. paštai */
 const INSTRUCTOR_EMAILS = {
   "Kęstutis Mikelevičius": "kestutis.m.agriciaus@gmail.com",
   "Jevgenij Burgan":        "jevgenijb17@gmail.com",
-  "Vilma Rustamova":        "vilmukasv@gmail.com",
-};
+  };
 
 // Fallback email jei instruktorius nerastas
-const FALLBACK_REMINDER_EMAIL = "s@gmail.com";
+const FALLBACK_REMINDER_EMAIL = "saulius.transportas@gmail.com";
 
 // BCC kopijos visiems siunčiamiems priminimams
 const AUDIT_BCC_EMAILS = [
-  "s@gmail.com",
+  "saulius.transportas@gmail.com",
   "mc@glogistics.lt"
 ].filter(Boolean).join(",");
 
