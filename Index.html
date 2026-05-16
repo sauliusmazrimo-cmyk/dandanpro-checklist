@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <base target="_top">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Drivers CheckList · DanDanPro Logistics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────── */
+    :root {
+      --c-bg:       #F0F2F5;
+      --c-surface:  #FFFFFF;
+      --c-border:   #DDE1E8;
+      --c-txt:      #111827;
+      --c-muted:    #6B7280;
+      --c-brand:    #0057FF;
+      --c-brand2:   #0041CC;
+      --c-blue:     #1D4ED8;
+      --c-green:    #15803D;
+      --c-red:      #B91C1C;
+      --c-amber:    #B45309;
+      --c-green-bg: #DCFCE7;
+      --c-red-bg:   #FEE2E2;
+      --c-amber-bg: #FEF3C7;
+      --c-blue-bg:  #DBEAFE;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:  0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.05);
+      --shadow-lg:  0 12px 32px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+      --r:          10px;
+      --font:       'DM Sans', sans-serif;
+      --mono:       'DM Mono', monospace;
+    }
+
+    /* ─── RESET ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--c-txt);
+      background: var(--c-bg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── PIN SCREEN ─────────────────────────────────── */
+    #pinScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(160deg, #0f0a14 0%, #1a0614 40%, #0a0f1e 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0;
+    }
+    #pinScreen.hidden { display: none; }
+
+    .pin-logo {
+      font-size: 13px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; color: rgba(255,255,255,.35);
+      margin-bottom: 8px;
+    }
+    .pin-title {
+      font-size: 28px; font-weight: 700; color: #fff;
+      margin-bottom: 36px; letter-spacing: -.3px;
+    }
+    .pin-title span { color: #F59E0B; }
+
+    .pin-box {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 20px;
+      padding: 36px 32px 28px;
+      width: 340px; max-width: 92vw;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 48px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04) inset;
+    }
+    .pin-prompt { text-align: center; font-size: 14px; color: rgba(255,255,255,.5); margin-bottom: 24px; font-weight: 500; }
+
+    .pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 28px; }
+    .pin-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.25); background: transparent;
+      transition: all .2s cubic-bezier(.34,1.56,.64,1);
+    }
+    .pin-dot.on  { background: #F59E0B; border-color: #F59E0B; transform: scale(1.2); box-shadow: 0 0 12px rgba(245,158,11,.5); }
+    .pin-dot.err { background: #EF4444; border-color: #EF4444; }
+
+    .pin-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .pin-key {
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.07);
+      color: #fff; border-radius: 12px;
+      padding: 18px 8px; font-size: 22px; font-weight: 600;
+      cursor: pointer; text-align: center; user-select: none;
+      transition: background .1s, transform .08s;
+      -webkit-tap-highlight-color: transparent;
+      font-family: var(--mono);
+    }
+    .pin-key:hover  { background: rgba(255,255,255,.14); }
+    .pin-key:active { background: rgba(245,158,11,.2); transform: scale(.93); }
+    .pin-key.del    { font-size: 18px; color: rgba(255,255,255,.55); }
+    .pin-key.empty  { background: transparent; border-color: transparent; pointer-events: none; }
+
+    .pin-err {
+      margin-top: 16px; text-align: center;
+      font-size: 13px; font-weight: 600; color: #FCA5A5; min-height: 20px;
+    }
+    .pin-ok {
+      margin-top: 14px; display: none;
+      align-items: center; gap: 10px;
+      background: rgba(21,128,61,.2); border: 1px solid rgba(21,128,61,.35);
+      border-radius: 10px; padding: 10px 14px;
+    }
+    .pin-ok-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; }
+    .pin-ok-name { color: #fff; font-weight: 600; font-size: 14px; }
+
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)}
+      30%{transform:translateX(8px)} 45%{transform:translateX(-6px)}
+      60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)}
+    }
+    .pin-box.shake { animation: shake .4s ease; }
+
+    /* ─── TOP BAR ────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 200;
+      height: 56px;
+      background: var(--c-brand);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; gap: 16px;
+      box-shadow: 0 2px 16px rgba(0,87,255,.35);
+    }
+    .tb-left  { display: flex; align-items: center; gap: 16px; }
+    .tb-brand {
+      font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .tb-brand::before {
+      content: '';
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='1' y='3' width='15' height='13' rx='2'/%3E%3Cpath d='M16 8h4l3 3v5h-7V8z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center; background-size: 16px;
+    }
+    .tb-divider { width: 1px; height: 20px; background: rgba(255,255,255,.2); }
+    .tb-page { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.7); }
+
+    .tb-user {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px; padding: 6px 14px 6px 10px;
+      font-size: 13px; font-weight: 600; color: #fff;
+      cursor: pointer; transition: background .15s;
+    }
+    .tb-user:hover { background: rgba(255,255,255,.2); }
+    .tb-user-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; flex-shrink: 0; }
+    .tb-user-sep { color: rgba(255,255,255,.35); font-size: 11px; }
+    .tb-analysis { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:5px 14px; font-size:13px; font-weight:600; color:#fff; cursor:pointer; white-space:nowrap; transition:background .15s; font-family:var(--font); }
+    .tb-analysis:hover { background:rgba(255,255,255,.22); }
+
+    /* ─── PAGE SHELL ─────────────────────────────────── */
+    .page { padding: 20px 24px 48px; }
+
+    .page-hdr {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+    }
+    .page-hdr h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+    .page-hdr p  { font-size: 13px; color: var(--c-muted); margin-top: 2px; }
+    .clock {
+      font-family: var(--mono); font-size: 13px; font-weight: 500;
+      color: var(--c-muted); white-space: nowrap;
+      background: var(--c-surface); border: 1px solid var(--c-border);
+      border-radius: 8px; padding: 6px 12px;
+    }
+
+    /* ─── PANEL ──────────────────────────────────────── */
+    .panel {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .panel-hdr {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; border-bottom: 1px solid var(--c-border);
+      background: #FAFBFC; flex-wrap: nowrap; min-height: 54px;
+    }
+    .panel-icon {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .panel-icon.blue  { background: var(--c-blue-bg); }
+    .panel-icon.red   { background: var(--c-red-bg);  }
+    .panel-icon.green { background: var(--c-green-bg);}
+    .panel-icon.pink  { background: #FCE7F3; }
+
+    .panel-title { font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .panel-sub   { font-size: 12px; color: var(--c-muted); margin-top: 1px; }
+    .panel-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: nowrap; }
+
+    /* ─── INPUT / SEARCH ─────────────────────────────── */
+    .inp {
+      height: 36px; border: 1px solid var(--c-border); border-radius: 8px;
+      padding: 0 12px; font-size: 14px; font-family: var(--font);
+      background: #fff; outline: none; color: var(--c-txt);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .inp:focus { border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+    .inp-search { width: 260px; }
+
+    /* ─── BADGE ──────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .2px;
+      background: #F1F5F9; color: var(--c-muted); border: 1px solid var(--c-border);
+      white-space: nowrap;
+    }
+    .badge.red   { background: var(--c-red-bg);   color: var(--c-red);   border-color: #FECACA; }
+    .badge.green { background: var(--c-green-bg);  color: var(--c-green); border-color: #BBF7D0; }
+    .badge.amber { background: var(--c-amber-bg);  color: var(--c-amber); border-color: #FDE68A; }
+    .badge.blue  { background: var(--c-blue-bg);   color: var(--c-blue);  border-color: #BFDBFE; }
+
+    /* ─── BUTTONS ────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      border: none; border-radius: 7px; padding: 6px 11px;
+      font-size: 12px; font-weight: 600; font-family: var(--font);
+      cursor: pointer; white-space: nowrap;
+      transition: all .15s; outline: none;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    .btn-ghost  { background: #fff; color: var(--c-txt); border: 1px solid var(--c-border); }
+    .btn-ghost:hover { background: #F8FAFC; border-color: #C8D0DB; }
+
+    .btn-open   { background: #F1F5F9; color: #374151; border: 1px solid #DDE1E8; }
+    .btn-open:hover { background: #E2E8F0; }
+
+    .btn-claim  { background: var(--c-brand); color: #fff; box-shadow: 0 1px 3px rgba(0,87,255,.3); }
+    .btn-claim:hover:not(:disabled) { background: var(--c-brand2); }
+
+    .btn-release { background: var(--c-red); color: #fff; box-shadow: 0 1px 3px rgba(185,28,28,.3); }
+    .btn-release:hover:not(:disabled) { background: #991B1B; }
+    .btn-clear { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .btn-clear:hover { background: #BBF7D0; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--c-brand) 0%, #1D4ED8 100%);
+      color: #fff; padding: 10px 24px; font-size: 15px; border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,87,255,.25);
+    }
+    .btn-primary:hover { opacity: .92; box-shadow: 0 4px 16px rgba(0,87,255,.3); }
+    .btn-secondary { background: #F1F5F9; color: var(--c-txt); border: 1px solid var(--c-border); padding: 10px 20px; font-size: 15px; border-radius: 10px; }
+    .btn-secondary:hover { background: #E2E8F0; }
+
+    /* ─── TABLE ──────────────────────────────────────── */
+    .tbl-wrap { width: 100%; overflow-x: auto; }
+    .tbl {
+      border-collapse: collapse; width: 100%;
+      table-layout: fixed;
+    }
+    .tbl th {
+      text-align: left; font-size: 12px; font-weight: 700;
+      color: var(--c-muted); text-transform: uppercase; letter-spacing: .5px;
+      padding: 11px 16px; border-bottom: 2px solid var(--c-border);
+      background: #FAFBFC; white-space: nowrap;
+    }
+    .tbl td {
+      padding: 11px 14px; border-bottom: 1px solid #F1F3F7;
+      font-size: 14px; vertical-align: middle;
+      max-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tbody tr:hover td { background: #F7F9FF; }
+
+    /* Queue columns */
+    .qc-date  { width: 108px; }
+    .qc-drv   { width: 180px; }
+    .qc-instr { width: 148px; }
+    .qc-cat   { width: 68px; }
+    .qc-stat  { width: 84px; }
+    .qc-when  { width: 104px; }
+    .qc-acts  { width: 212px; }
+
+    /* Bad columns */
+    .bc-drv    { width: auto; }
+    .bc-stat   { width: 100px; }
+    .bc-score  { width: 80px;  }
+    .bc-cat    { width: 100px; }
+    .bc-reason { width: auto;  }
+    .bc-upd    { width: 130px; }
+    .bc-acts   { width: 170px; }
+
+    .acts { display: flex; gap: 5px; align-items: center; flex-wrap: nowrap; }
+    /* Veiksmai stulpelis - mygtukams reikia overflow:visible */
+    .tbl td.td-acts { overflow: visible; white-space: nowrap; text-overflow: clip; }
+    .tbl-empty { padding: 32px 20px; color: var(--c-muted); font-size: 14px; text-align: center; }
+
+    .drv-name { font-weight: 600; font-size: 15px; }
+    .drv-date { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--c-txt); }
+    .drv-instr { font-size: 13px; color: #374151; }
+    .drv-when  { font-family: var(--mono); font-size: 12px; color: var(--c-muted); }
+
+    /* ─── MSG ────────────────────────────────────────── */
+    .msg {
+      display: none; margin: 0 20px 0; padding: 10px 14px;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .msg + * { margin-top: 0 !important; }
+    .msg.ok   { display:block; background:var(--c-green-bg); color:var(--c-green); border-color:#BBF7D0; }
+    .msg.err  { display:block; background:var(--c-red-bg);   color:var(--c-red);   border-color:#FECACA; }
+    .msg.info { display:block; background:var(--c-blue-bg);  color:var(--c-blue);  border-color:#BFDBFE; }
+    .msg.warn { display:block; background:var(--c-amber-bg); color:var(--c-amber); border-color:#FDE68A; }
+
+    /* ─── HINT ───────────────────────────────────────── */
+    .hint {
+      padding: 10px 20px; font-size: 12px; color: var(--c-muted);
+      border-top: 1px solid var(--c-border); background: #FAFBFC;
+    }
+
+    /* ─── FORM ───────────────────────────────────────── */
+    .form-body { padding: 20px; }
+    .form-row  { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    @media(max-width:1200px){ .form-row{ grid-template-columns: 1fr 1fr; } }
+    @media(max-width:700px) { .form-row{ grid-template-columns: 1fr; } }
+
+    .field label {
+      display: block; font-size: 12px; font-weight: 700; color: var(--c-muted);
+      text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%; border: 1px solid var(--c-border); border-radius: 8px;
+      padding: 9px 12px; font-size: 14px; font-family: var(--font);
+      color: var(--c-txt); background: #fff; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(29,78,216,.1);
+    }
+    .field input[readonly] { background: #F8FAFC; color: var(--c-muted); cursor: default; }
+    .field select[multiple] { height: 196px; }
+    .field textarea { min-height: 96px; resize: vertical; }
+
+    /* Autocomplete */
+    .ac { position: relative; }
+    .ac-drop {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      background: #fff; border: 1px solid var(--c-border);
+      border-radius: 10px; box-shadow: var(--shadow-md);
+      max-height: 220px; overflow-y: auto; display: none; z-index: 999;
+    }
+    .ac-item { padding: 9px 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .ac-item:hover { background: #F0F4FF; }
+    .ac-none { padding: 9px 14px; font-size: 13px; color: var(--c-muted); }
+
+    /* IN/OUT */
+    .io-block { border: 1px solid var(--c-border); border-radius: 10px; padding: 14px; background: #FAFBFC; }
+    .io-lbl { font-size: 12px; font-weight: 700; color: var(--c-muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
+    .io-lbl span { color: var(--c-red); }
+    .io-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .io-btn {
+      border: 1.5px solid var(--c-border); background: #fff; color: var(--c-txt);
+      border-radius: 8px; padding: 12px 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-align: center; font-family: var(--font);
+      transition: all .14s;
+    }
+    .io-btn.sel-in  { border-color: #15803D; background: #DCFCE7; color: #15803D; box-shadow: 0 0 0 3px rgba(21,128,61,.12); }
+    .io-btn.sel-out { border-color: #1D4ED8; background: #DBEAFE; color: #1D4ED8; box-shadow: 0 0 0 3px rgba(29,78,216,.12); }
+    .io-hint { margin-top: 8px; font-size: 12px; color: var(--c-amber); font-weight: 600; }
+
+    /* Outcome toggles */
+    .tog-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tog {
+      border: 1.5px solid var(--c-border); background: #fff;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: all .14s; white-space: nowrap; font-family: var(--font);
+    }
+    .tog::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .5; }
+    .tog.to { color: var(--c-amber); border-color: #FDE68A; background: var(--c-amber-bg); }
+    .tog.tr { color: var(--c-red);   border-color: #FECACA; background: var(--c-red-bg);   }
+    .tog.tg { color: var(--c-green); border-color: #BBF7D0; background: var(--c-green-bg); }
+    .tog.tb { color: var(--c-blue);  border-color: #BFDBFE; background: var(--c-blue-bg);  }
+    .tog.active { box-shadow: 0 0 0 3px currentColor, 0 0 0 5px rgba(255,255,255,.8); font-weight: 700; }
+    .tog.active::before { opacity: 1; }
+
+    /* Form bottom */
+    .form-lower { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    @media(max-width:700px){ .form-lower{ grid-template-columns:1fr; } }
+    .form-lower-left { display: flex; flex-direction: column; gap: 14px; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--c-border); }
+
+    /* ─── HISTORY ────────────────────────────────────── */
+    .hist-wrap { padding: 0 20px 20px; }
+    .hist-note { white-space: pre-wrap; font-size: 13px; }
+
+    /* ─── FOOTER ─────────────────────────────────────── */
+    .footer {
+      margin-top: 8px; padding: 12px 20px; border-radius: 10px;
+      border: 1px solid #FECACA; background: #FEF2F2;
+      color: var(--c-red); font-size: 12px; font-weight: 600; text-align: center;
+    }
+
+    /* ─── CHECKBOX ───────────────────────────────────── */
+    .chk-lbl {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; color: var(--c-muted);
+      cursor: pointer; white-space: nowrap; user-select: none;
+    }
+    .chk-lbl input { width: 15px; height: 15px; accent-color: var(--c-brand); cursor: pointer; }
+
+    /* ─── OFFLINE ────────────────────────────────────── */
+    .offline-bar {
+      display: none; margin: 8px 20px 0;
+      padding: 10px 14px; border-radius: 8px;
+      background: var(--c-amber-bg); color: var(--c-amber);
+      border: 1px solid #FDE68A; font-size: 13px; font-weight: 600;
+    }
+
+    /* ─── SCORE BADGE ────────────────────────────────── */
+    .sc {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 24px; border-radius: 6px;
+      font-size: 12px; font-weight: 700; font-family: var(--mono);
+    }
+    .sc-hi  { background: var(--c-red-bg);   color: var(--c-red);   }
+    .sc-mid { background: var(--c-amber-bg);  color: var(--c-amber); }
+
+    /* row states */
+    .row-closed td { opacity: .6; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     PIN SCREEN
+════════════════════════════════════════ -->
+<div id="pinScreen">
+  <div class="pin-logo">UAB DanDanPro Logistics</div>
+  <div class="pin-title">Drivers <span>CheckList</span></div>
+  <div class="pin-box" id="pinBox">
+    <div class="pin-prompt">Įveskite savo PIN kodą</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-grid" id="pinGrid">
+      <div class="pin-key" data-n="1">1</div><div class="pin-key" data-n="2">2</div><div class="pin-key" data-n="3">3</div>
+      <div class="pin-key" data-n="4">4</div><div class="pin-key" data-n="5">5</div><div class="pin-key" data-n="6">6</div>
+      <div class="pin-key" data-n="7">7</div><div class="pin-key" data-n="8">8</div><div class="pin-key" data-n="9">9</div>
+      <div class="pin-key empty"></div><div class="pin-key" data-n="0">0</div><div class="pin-key del" data-n="del">⌫</div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="pin-ok" id="pinOk">
+      <div class="pin-ok-dot"></div>
+      <div class="pin-ok-name" id="pinOkName"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MAIN
+════════════════════════════════════════ -->
+<div id="main" style="display:none;">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-brand">UAB DanDanPro Logistics</div>
+      <div class="tb-divider"></div>
+      <div class="tb-page">Drivers CheckList</div>
+    </div>
+    <button class="tb-analysis" onclick="openAnalysis()">📊 Eco analizė</button>
+    <button class="tb-analysis" onclick="openReport()">📋 Ataskaita</button>
+    <button class="tb-analysis" onclick="openDrivers()">👥 Vairuotojai</button>
+    <button class="tb-analysis" onclick="openNaujokai()">🆕 Naujokai</button>
+    <div class="tb-user" id="tbUser">
+      <div class="tb-user-dot"></div>
+      <span id="tbUserName">—</span>
+      <span class="tb-user-sep">·</span>
+      <span>Atsijungti</span>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- Page header -->
+    <div class="page-hdr">
+      <div>
+        <h1>Vairuotojų neatitikimų valdymas</h1>
+        <p>Perimk, fiksuok kontaktus ir stebėk probleminius vairuotojus</p>
+      </div>
+      <div class="clock" id="clock">—</div>
+    </div>
+
+    <!-- ══ EILĖ ══ -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-icon blue">📋</div>
+        <div>
+          <div class="panel-title">Atviri atvejai</div>
+          <div class="panel-sub">Suėję terminai · laukia kontakto</div>
+        </div>
+        <div class="panel-tools">
+          <input class="inp inp-search" type="text" id="qSearch" placeholder="Ieškoti vardas, instruktorius…"/>
+          <span class="badge" id="qCount">—</span>
+          <button class="btn btn-ghost" id="qRefresh">↻ Atnaujinti</button>
+        </div>
+      </div>
+      <div class="msg" id="qMsg"></div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <colgroup>
+            <col class="qc-date"><col class="qc-drv"><col class="qc-instr">
+            <col class="qc-cat"><col class="qc-stat"><col class="qc-when"><col class="qc-acts">
+          </colgroup>
+          <thead><tr>
+            <th>Terminas</th><th>Vairuotojas</th><th>Instruktorius</th>
+            <th>Kategorija</th><th>Statusas</th><th>Paimta</th><th>Veiksmai</th>
+          </tr></thead>
+          <tbody id="qBody"><tr><td colspan="7" class="tbl-empty">Kraunasi…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="hint">Pasiimu – priskiria bylą · Atlaisvinti – atlaisvina kitam · Atidaryti – pakelia į formą su istorija</div>
+    </div>
+
+    <!-- ══ BLOGAS ══ -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-icon red">⚠️</div>
+        <div>
+          <div class="panel-title">BLOGAS vairuotojai</div>
+          <div class="panel-sub">Aukštas pažeidimų balas · 60 dienų langas</div>
+        </div>
+        <div class="panel-tools">
+          <input class="inp inp-search" type="text" id="bSearch" placeholder="Ieškoti…"/>
+          <span class="badge red" id="bCount">—</span>
+          <label class="chk-lbl"><input type="checkbox" id="bClosed"/> Rodyti uždarytus</label>
+          <button class="btn btn-ghost" id="bRefresh">↻ Atnaujinti</button>
+        </div>
+      </div>
+      <div class="msg" id="bMsg"></div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <colgroup>
+            <col class="bc-drv"><col class="bc-stat"><col class="bc-score">
+            <col class="bc-cat"><col class="bc-reason"><col class="bc-upd"><col class="bc-acts">
+          </colgroup>
+          <thead><tr>
+            <th>Vairuotojas</th><th>Statusas</th><th>Score</th>
+            <th>Kategorija</th><th>Priežastys</th><th>Atnaujinta</th><th></th>
+          </tr></thead>
+          <tbody id="bBody"><tr><td colspan="7" class="tbl-empty">Kraunasi…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="hint">BadFlag ≥ 8 taškų arba NEATITINKA ≥ 3 kartai per 60 dienų · Uždarytos bylos – istorinė nuoroda</div>
+    </div>
+
+    <!-- ══ FORMA ══ -->
+    <div class="panel" id="formPanel">
+      <div class="panel-hdr">
+        <div class="panel-icon green">✏️</div>
+        <div>
+          <div class="panel-title">Kontaktas / pastaba</div>
+          <div class="panel-sub">Neatsiliepia +1d · Neatitinka +5d · Atitinka +60d</div>
+        </div>
+      </div>
+      <div class="msg" id="fMsg"></div>
+      <div class="form-body">
+        <!-- Row 1: 4 laukai -->
+        <div class="form-row">
+          <div class="field">
+            <label>Instruktorius</label>
+            <select id="instructor">
+              <option value="">— pasirinkti —</option>
+              <option value="Kęstutis Mikelevičius">Kęstutis Mikelevičius</option>
+              <option value="Jevgenij Burgan">Jevgenij Burgan</option>
+              <option value="Vilma Rustamova">Vilma Rustamova</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Vairuotojas</label>
+            <div class="ac">
+              <input id="driverInp" placeholder="Vardas Pavardė" autocomplete="off"/>
+              <div class="ac-drop" id="driverDrop"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Atvejo ID</label>
+            <input id="caseId" placeholder="Automatinis" readonly/>
+          </div>
+          <div class="field">
+            <label>Kategorijos (Ctrl+klik – kelios)</label>
+            <select id="cats" multiple>
+              <option value="DOCS">DOCS — dokumentai, ataskaitos</option>
+              <option value="TIME">TIME — darbo/poilsio, tachografas</option>
+              <option value="ECO">ECO — degalų deginimas</option>
+              <option value="PROCEDURE">PROCEDURE — instrukcijų nesilaikymas</option>
+              <option value="GEDIMAI">GEDIMAI — techniniai gedimai</option>
+              <option value="ALGA">ALGA — atlyginimas, žalos</option>
+              <option value="CARE">CARE — TP priežiūra</option>
+              <option value="RAPORT">RAPORT — skundas vadybininkui</option>
+              <option value="OTHER">OTHER — kita</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2: IN/OUT + Rezultatas | Pastabos -->
+        <div class="form-lower">
+          <div class="form-lower-left">
+            <div class="io-block">
+              <div class="io-lbl">Pasirinkimas <span>*</span></div>
+              <div class="io-btns">
+                <button type="button" class="io-btn" id="ioIn">→ IN</button>
+                <button type="button" class="io-btn" id="ioOut">OUT →</button>
+              </div>
+              <div class="io-hint" id="ioHint">● Pasirink IN arba OUT</div>
+            </div>
+            <div class="field">
+              <label>Rezultatas</label>
+              <div class="tog-row">
+                <div class="tog to" data-v="NEATSILIEPIA">Neatsiliepia</div>
+                <div class="tog tr" data-v="NEATITINKA">Neatitinka</div>
+                <div class="tog tg" data-v="ATITINKA">Atitinka</div>
+                <div class="tog tb" data-v="UZDARYTI">Uždaryti</div>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;">
+            <label>Pastabos</label>
+            <textarea id="notes" placeholder="Trumpai: kas blogai / kas sutarta / įrodymai / terminai…" style="flex:1;min-height:120px;"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="fReset">Išvalyti</button>
+          <button class="btn btn-primary"   id="fSend">✓ Siųsti</button>
+        </div>
+        <div class="offline-bar" id="offlineBar">Nėra interneto — įrašas įdėtas į eilę ir bus išsiųstas vėliau.</div>
+      </div>
+    </div>
+
+    <!-- ══ ISTORIJA ══ -->
+    <div class="panel" id="histPanel" style="display:none;">
+      <div class="panel-hdr">
+        <div class="panel-icon pink">📖</div>
+        <div>
+          <div class="panel-title">Kontaktų istorija</div>
+          <div class="panel-sub" id="histSub">—</div>
+        </div>
+        <div class="panel-tools">
+          <span class="badge" id="histCount">—</span>
+        </div>
+      </div>
+      <div class="hist-wrap">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th style="width:130px;">Laikas</th>
+              <th style="width:170px;">Instruktorius</th>
+              <th style="width:120px;">Rezultatas</th>
+              <th style="width:120px;">Kategorija</th>
+              <th>Pastabos</th>
+            </tr></thead>
+            <tbody id="histBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">UAB DanDanPro Logistics nuosavybė · Dalintis, kopijuoti ar platinti – draudžiama</div>
+
+  </div><!-- /.page -->
+</div><!-- /#main -->
+
+<script>
+/* ════════════════════════════════════════════════
+   PIN  —  pakeisk PIN_MAP pagal poreikį
+════════════════════════════════════════════════ */
+const PIN_MAP = {
+  "2222": "Jevgenij Burgan",
+  "3333": "K\u0119stutis Mikelevi\u010dius",
+  "4444": "Vilma Rustamova",
+  "0000": "Saulius"
+};
+
+let pinBuf = "";
+
+function pinDots(state){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById("pd"+i);
+    d.classList.remove("on","err");
+    if(state==="err") d.classList.add("err");
+    else if(i<pinBuf.length) d.classList.add("on");
+  }
+}
+function pinShake(){
+  const b=document.getElementById("pinBox");
+  b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+  setTimeout(()=>b.classList.remove("shake"),420);
+}
+function pinError(msg){
+  document.getElementById("pinErr").textContent=msg;
+  pinDots("err"); pinShake();
+  setTimeout(()=>{ pinBuf=""; pinDots(""); document.getElementById("pinErr").textContent=""; },900);
+}
+function pinTry(){
+  const who=PIN_MAP[pinBuf];
+  if(who){
+    document.getElementById("pinOkName").textContent="✓ "+who;
+    document.getElementById("pinOk").style.display="flex";
+    setTimeout(()=>{
+      document.getElementById("pinScreen").classList.add("hidden");
+      document.getElementById("main").style.display="";
+      document.getElementById("instructor").value=who;
+      document.getElementById("tbUserName").textContent=who;
+      initApp();
+    },680);
+  } else pinError("Neteisingas PIN kodas");
+}
+
+document.getElementById("pinGrid").addEventListener("click",e=>{
+  const k=e.target.closest(".pin-key"); if(!k||k.classList.contains("empty")) return;
+  const n=k.dataset.n;
+  if(n==="del"){ pinBuf=pinBuf.slice(0,-1); pinDots(""); document.getElementById("pinErr").textContent=""; return; }
+  if(pinBuf.length>=4) return;
+  pinBuf+=n; pinDots("");
+  if(pinBuf.length===4) setTimeout(pinTry,120);
+});
+document.addEventListener("keydown",e=>{
+  if(document.getElementById("pinScreen").classList.contains("hidden")) return;
+  if(e.key>="0"&&e.key<="9"&&pinBuf.length<4){ pinBuf+=e.key; pinDots(""); if(pinBuf.length===4) setTimeout(pinTry,120); }
+  if(e.key==="Backspace"){ pinBuf=pinBuf.slice(0,-1); pinDots(""); }
+});
+document.getElementById("tbUser").addEventListener("click",()=>{
+  if(!confirm("Atsijungti?")) return;
+  pinBuf=""; pinDots(""); document.getElementById("pinOk").style.display="none";
+  document.getElementById("pinErr").textContent="";
+  document.getElementById("pinScreen").classList.remove("hidden");
+  document.getElementById("main").style.display="none";
+});
+
+/* ════════════════════════════════════════════════
+   APP  —  paleidžiama tik po sėkmingo PIN
+════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
+function openNaujokai(){
+  if(google?.script?.run){
+    google.script.run.withSuccessHandler(url=>{
+      if(url) window.open(url.replace("page=analysis","page=naujokai"), "_blank");
+    }).getAnalysisUrl();
+  }
+}
+
+function openDrivers(){
+  if(google?.script?.run){
+    google.script.run.withSuccessHandler(url=>{
+      if(url) window.open(url.replace("page=analysis","page=drivers"), "_blank");
+    }).getAnalysisUrl();
+  }
+}
+
+function openReport(){
+  if(google?.script?.run){
+    google.script.run.withSuccessHandler(url=>{
+      if(url) window.open(url.replace("page=analysis","page=report"), "_blank");
+    }).getAnalysisUrl();
+  }
+}
+
+function openAnalysis(){
+  if(google?.script?.run){
+    google.script.run.withSuccessHandler(url=>{
+      if(url) window.open(url, "_blank");
+    }).getAnalysisUrl();
+  }
+}
+const esc = s => (s||"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+function msg(id,text,type){ const e=$(id); e.className="msg"+(type?" "+type:""); e.textContent=text||""; e.style.display=text?"block":"none"; }
+
+function initApp(){
+  tickStart();
+  // Toggles
+  document.querySelectorAll(".tog").forEach(t=>t.addEventListener("click",()=>{
+    document.querySelectorAll(".tog").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active"); selOut=t.dataset.v;
+  }));
+  // IN/OUT
+  $("ioIn").addEventListener("click",()=>setIO("IN"));
+  $("ioOut").addEventListener("click",()=>setIO("OUT"));
+  // Queue
+  $("qRefresh").addEventListener("click",loadQ);
+  $("qSearch").addEventListener("input",()=>renderQ(filterQ(allQ)));
+  $("qBody").addEventListener("click",qClick);
+  // Bad
+  $("bRefresh").addEventListener("click",loadBad);
+  $("bSearch").addEventListener("input",renderBad);
+  $("bClosed").addEventListener("change",renderBad);
+  $("bBody").addEventListener("click",e=>{
+    const bo=e.target.closest("[data-bid]"); if(bo) openForm(bo.dataset.bid);
+    const bc=e.target.closest("[data-clear]"); if(bc) clearBadFlag(bc.dataset.clear, bc.dataset.name);
+  });
+  // Form
+  $("fReset").addEventListener("click",resetForm);
+  $("fSend").addEventListener("click",sendForm);
+
+  loadLists(); loadQ(); loadBad(); flushOff();
+}
+
+/* ── Clock ── */
+let _tick;
+function tickStart(){
+  function t(){ const d=new Date(); $("clock").textContent=d.toLocaleString("lt-LT",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
+  t(); _tick=setInterval(t,1000);
+}
+
+/* ── Autocomplete ── */
+let lists={drivers:[]};
+function loadLists(){
+  if(!google?.script?.run?.getLists) return;
+  google.script.run.withSuccessHandler(d=>{ lists=d||{drivers:[]}; bindAC($("driverInp"),$("driverDrop"),()=>lists.drivers); }).withFailureHandler(()=>{}).getLists();
+}
+function bindAC(inp,drop,src){
+  const norm=v=>(v||"").toLowerCase();
+  const render=()=>{
+    const q=norm(inp.value);
+    const its=(src()||[]).filter(x=>!q||norm(x).includes(q)).slice(0,30);
+    drop.innerHTML=its.length?its.map(v=>`<div class="ac-item">${esc(v)}</div>`).join(""):`<div class="ac-none">Nėra</div>`;
+    drop.style.display="block";
+  };
+  inp.addEventListener("focus",render); inp.addEventListener("input",render);
+  document.addEventListener("click",e=>{ if(!drop.contains(e.target)&&e.target!==inp) drop.style.display="none"; });
+  drop.addEventListener("mousedown",e=>{ const it=e.target.closest(".ac-item"); if(!it) return; e.preventDefault(); inp.value=it.textContent; drop.style.display="none"; });
+}
+
+/* ── IN/OUT ── */
+let selIO="";
+function setIO(w){
+  $("ioIn").classList.remove("sel-in","sel-out"); $("ioOut").classList.remove("sel-in","sel-out");
+  if(w==="IN"){ $("ioIn").classList.add("sel-in"); selIO="IN"; }
+  else if(w==="OUT"){ $("ioOut").classList.add("sel-out"); selIO="OUT"; }
+  else selIO="";
+  $("ioHint").style.display=selIO?"none":"block";
+}
+
+/* ── Outcome ── */
+let selOut="";
+
+/* ────────── EILĖ ────────── */
+let allQ=[];
+function filterQ(its){ const q=($("qSearch")?.value||"").trim().toLowerCase(); if(!q) return its; return its.filter(x=>[x.nextContactAt,x.driverName,x.claimedBy,x.claimStatus,x.categories].join(" ").toLowerCase().includes(q)); }
+
+function pillStat(s){
+  s=(s||"FREE").toUpperCase();
+  if(s==="CLAIMED") return `<span class="badge red">CLAIMED</span>`;
+  if(s==="FREE")    return `<span class="badge green">FREE</span>`;
+  return `<span class="badge amber">${esc(s)}</span>`;
+}
+function renderQ(its){
+  const tot=allQ.length; const q=($("qSearch")?.value||"").trim();
+  $("qCount").textContent=q?`${its.length}/${tot}`:`${tot} įrašų`;
+  if(!its.length){ $("qBody").innerHTML=`<tr><td colspan="7" class="tbl-empty">Šiuo metu nėra atvirų atvejų</td></tr>`; return; }
+  const me=($("instructor")?.value||"").trim();
+  $("qBody").innerHTML=its.map(it=>{
+    const claimed=(it.claimStatus||"").toUpperCase()==="CLAIMED";
+    const mine=me&&it.claimedBy===me;
+    return `<tr>
+      <td class="drv-date">${esc(it.nextContactAt||"")}</td>
+      <td class="drv-name">${esc(it.driverName||"")}</td>
+      <td class="drv-instr">${esc(it.claimedBy||"—")}</td>
+      <td><span class="badge">${esc(it.categories||"—")}</span></td>
+      <td>${pillStat(it.claimStatus)}</td>
+      <td class="drv-when">${esc(it.claimedAt||"—")}</td>
+      <td class="td-acts"><div class="acts">
+        <button class="btn btn-open"    data-act="load"    data-id="${esc(it.caseId)}">Atidaryti</button>
+        ${!claimed?`<button class="btn btn-claim"   data-act="claim"   data-id="${esc(it.caseId)}">Pasiimu</button>`:`<button class="btn btn-claim" disabled>Pasiimu</button>`}
+        ${(claimed&&mine)?`<button class="btn btn-release" data-act="release" data-id="${esc(it.caseId)}">Atlaisvinti</button>`:`<button class="btn btn-release" disabled>Atlaisvinti</button>`}
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+function normQ(it){ return {caseId:it.caseId,driverName:it.driverName,categories:it.categories,nextContactAt:it.nextContactAt,stage:it.stage||"",claimStatus:it.claimStatus||it.status||"FREE",claimedBy:it.claimedBy||it.instructor||"",claimedAt:it.claimedAt||""}; }
+function loadQ(){
+  msg("qMsg","Kraunasi…","info");
+  if(!google?.script?.run?.getCases){ msg("qMsg","Trūksta getCases()","err"); return; }
+  google.script.run.withSuccessHandler(its=>{ allQ=(its||[]).map(normQ); renderQ(filterQ(allQ)); msg("qMsg","",""); }).withFailureHandler(e=>msg("qMsg",e?.message||"Klaida","err")).getCases($("qSearch")?.value||"");
+}
+function qClick(e){
+  const b=e.target.closest("button[data-act]"); if(!b) return;
+  const act=b.dataset.act, id=b.dataset.id; if(!id) return;
+  if(act==="load")    openForm(id);
+  if(act==="claim")   doClaim(id);
+  if(act==="release") doRelease(id);
+}
+
+/* ── openForm ── */
+function openForm(caseId){
+  if(!google?.script?.run?.getCaseDetails){ msg("qMsg","Trūksta getCaseDetails()","err"); return; }
+  msg("qMsg","Atidarau…","info");
+  google.script.run.withSuccessHandler(res=>{
+    msg("qMsg","","");
+    const d=res?.details||{}; const hist=res?.history||[];
+    $("caseId").value=d.caseId||""; $("driverInp").value=d.driverName||"";
+    const cs=(d.categories||"").split(/[;,]+/).map(s=>s.trim()).filter(Boolean);
+    [...$("cats").options].forEach(o=>o.selected=cs.includes(o.value));
+    $("notes").value=""; selOut=""; document.querySelectorAll(".tog").forEach(t=>t.classList.remove("active")); setIO("");
+    // History
+    $("histBody").innerHTML="";
+    if(hist.length){
+      hist.forEach(h=>{
+        $("histBody").innerHTML+=`<tr>
+          <td style="font-family:var(--mono);font-size:12px;">${esc(h.time||"")}</td>
+          <td style="font-size:13px;">${esc(h.instructor||"")}</td>
+          <td><span class="badge">${esc(h.outcome||"")}</span></td>
+          <td style="font-size:12px;">${esc(h.categories||"")}</td>
+          <td class="hist-note">${esc(h.notes||"")}</td></tr>`;
+      });
+      $("histCount").textContent=hist.length+" įrašų";
+      $("histPanel").style.display="";
+      const cl=(d.claimStatus||"").toUpperCase();
+      $("histSub").textContent=cl==="CLAIMED"?`Paimta: ${d.claimedBy||"—"} (${d.claimedAt||"—"})`:"";
+    } else $("histPanel").style.display="none";
+    scrollToForm();
+  }).withFailureHandler(e=>msg("qMsg",e?.message||"Klaida","err")).getCaseDetails(caseId);
+}
+
+/* ── Claim / Release ── */
+function doClaim(id){
+  const instr=($("instructor")?.value||"").trim();
+  if(!instr){ msg("qMsg","Pirma pasirink instruktorių","err"); return; }
+  if(!google?.script?.run?.claimCase){ msg("qMsg","Trūksta claimCase()","err"); return; }
+  msg("qMsg","Pasiimu…","info");
+  google.script.run.withSuccessHandler(res=>{
+    msg("qMsg",res?.ok===false?(res.message||"Nepavyko"):"Paimta ✓",res?.ok===false?"err":"ok");
+    loadQ(); if(res?.ok!==false) scrollToForm();
+  }).withFailureHandler(e=>msg("qMsg",e?.message||"Klaida","err")).claimCase(id,instr);
+}
+function doRelease(id){
+  const instr=($("instructor")?.value||"").trim();
+  if(!instr){ msg("qMsg","Pirma pasirink instruktorių","err"); return; }
+  if(!google?.script?.run?.releaseCase){ msg("qMsg","Trūksta releaseCase()","err"); return; }
+  msg("qMsg","Atlaisvinu…","info");
+  google.script.run.withSuccessHandler(res=>{ msg("qMsg",res?.ok===false?(res.message||"Nepavyko"):"Atlaisvinta ✓",res?.ok===false?"err":"ok"); loadQ(); }).withFailureHandler(e=>msg("qMsg",e?.message||"Klaida","err")).releaseCase(id,instr);
+}
+
+/* ────────── BLOGAS ────────── */
+let allBad=[];
+const ADMIN = "Saulius";
+function isAdmin(){ return ($("tbUserName")?.textContent||"").trim() === ADMIN; }
+
+function clearBadFlag(caseId, name){
+  if(!isAdmin()){ msg("bMsg","Tik administratorius gali išvalyti BadFlag.","err"); return; }
+  if(!confirm("Išvalyti BadFlag vairuotojui:\n" + (name||caseId) + "?\n\nTai pažymės, kad vairuotojas pasitaisė.")) return;
+  if(!google?.script?.run?.clearBadFlag){ msg("bMsg","Trūksta clearBadFlag() – pridėk į Code.gs","err"); return; }
+  msg("bMsg","Valomos žymos…","info");
+  const who = ($("tbUserName")?.textContent||"").trim();
+  google.script.run
+    .withSuccessHandler(res=>{
+      msg("bMsg", res?.ok===false ? (res.message||"Nepavyko") : "✓ BadFlag išvalytas. Vairuotojas dingsta iš BLOGAS sąrašo.", res?.ok===false?"err":"ok");
+      loadBad();
+    })
+    .withFailureHandler(e=>msg("bMsg",e?.message||"Klaida","err"))
+    .clearBadFlag(caseId, who);
+}
+
+function loadBad(){
+  msg("bMsg","Kraunasi…","info");
+  if(!google?.script?.run?.getBadDrivers){ msg("bMsg","Trūksta getBadDrivers() – pridėk į Code.gs","err"); return; }
+  google.script.run.withSuccessHandler(its=>{ allBad=its||[]; msg("bMsg","",""); renderBad(); }).withFailureHandler(e=>msg("bMsg",e?.message||"Klaida","err")).getBadDrivers();
+}
+function renderBad(){
+  const q=($("bSearch")?.value||"").trim().toLowerCase();
+  const showCl=$("bClosed")?.checked;
+  const act=allBad.filter(x=>x.status!=="CLOSED").length;
+  const cl=allBad.filter(x=>x.status==="CLOSED").length;
+  $("bCount").textContent=`Aktyvūs: ${act} · Uždaryti: ${cl}`;
+  const its=allBad.filter(it=>{
+    if(!showCl&&it.status==="CLOSED") return false;
+    if(!q) return true;
+    return [it.driverName,it.categories,it.badReasons,it.summary].join(" ").toLowerCase().includes(q);
+  });
+  if(!its.length){ $("bBody").innerHTML=`<tr><td colspan="7" class="tbl-empty">Nėra BLOGAS įrašų${q?" pagal paiešką":""}</td></tr>`; return; }
+  function stPill(s){
+    if(s==="CLOSED") return `<span class="badge">Uždarytas</span>`;
+    if(s==="IN_PROGRESS") return `<span class="badge blue">Vyksta</span>`;
+    return `<span class="badge green">${esc(s||"OPEN")}</span>`;
+  }
+  $("bBody").innerHTML=its.map(it=>`<tr class="${it.status==="CLOSED"?"row-closed":""}">
+    <td class="drv-name">${esc(it.driverName)}</td>
+    <td>${stPill(it.status)}</td>
+    <td><span class="${it.badScore>=12?"sc sc-hi":"sc sc-mid"}">${it.badScore}</span></td>
+    <td style="font-size:13px;">${esc(it.categories||"")}</td>
+    <td style="font-size:12px;color:var(--c-muted);">${esc(it.badReasons||"")}</td>
+    <td style="font-family:var(--mono);font-size:12px;color:var(--c-muted);">${esc(it.updatedAt||"")}</td>
+    <td class="td-acts"><div class="acts">
+      <button class="btn btn-open" data-bid="${esc(it.caseId)}">Atidaryti</button>
+      ${(it.status!=="CLOSED"&&isAdmin())?`<button class="btn btn-clear" data-clear="${esc(it.caseId)}" data-name="${esc(it.driverName)}" title="Išvalyti BadFlag – vairuotojas pasitaisė">✓ Išvalyti</button>`:""}
+    </div></td>
+  </tr>`).join("");
+}
+
+/* ────────── OFFLINE ────────── */
+const OFK="gl_offline_v2";
+const isOnline=()=>navigator.onLine!==false;
+function enqOff(p){ const a=JSON.parse(localStorage.getItem(OFK)||"[]"); a.push({p,ts:Date.now()}); localStorage.setItem(OFK,JSON.stringify(a)); }
+function flushOff(){
+  if(!isOnline()) return;
+  const a=JSON.parse(localStorage.getItem(OFK)||"[]"); if(!a.length) return;
+  if(!google?.script?.run?.saveNote) return;
+  google.script.run.withSuccessHandler(()=>{ a.shift(); localStorage.setItem(OFK,JSON.stringify(a)); if(a.length) flushOff(); else $("offlineBar").style.display="none"; loadQ(); }).withFailureHandler(()=>$("offlineBar").style.display="block").saveNote(a[0].p);
+}
+window.addEventListener("online",flushOff);
+
+/* ────────── FORMA ────────── */
+function scrollToForm(){ $("formPanel")?.scrollIntoView({behavior:"smooth",block:"start"}); }
+function resetForm(){
+  $("driverInp").value=""; $("caseId").value="";
+  [...$("cats").options].forEach(o=>o.selected=false);
+  $("notes").value=""; selOut="";
+  document.querySelectorAll(".tog").forEach(t=>t.classList.remove("active"));
+  setIO(""); msg("fMsg","","");
+}
+function validate(){
+  if(!($("instructor")?.value||"").trim()) return "Pasirink instruktorių.";
+  if(!($("driverInp")?.value||"").trim())  return "Įrašyk vairuotoją.";
+  if(!selIO)   return "Pasirink IN arba OUT.";
+  if(!selOut)  return "Pasirink rezultatą.";
+  if(![...$("cats").selectedOptions].length) return "Pasirink bent vieną kategoriją.";
+  if(!($("notes")?.value||"").trim()) return "Parašyk pastabą.";
+  return "";
+}
+function sendForm(){
+  const err=validate(); if(err){ msg("fMsg",err,"err"); return; }
+  const payload={
+    instructor:($("instructor").value||"").trim(),
+    driverName:($("driverInp").value||"").trim(),
+    caseId:($("caseId").value||"").trim(),
+    ioDirection:selIO, action:"NOTE",
+    categories:[...$("cats").selectedOptions].map(o=>o.value).join(";"),
+    outcome:selOut, notes:($("notes").value||"").trim()
+  };
+  $("fSend").disabled=true; msg("fMsg","Siunčiu…","info");
+  if(!isOnline()){
+    enqOff(payload); $("offlineBar").style.display="block";
+    msg("fMsg","Nėra interneto — įrašas įdėtas į eilę.","warn");
+    resetForm(); $("fSend").disabled=false; return;
+  }
+  if(!google?.script?.run?.saveNote){ msg("fMsg","Trūksta saveNote()","err"); $("fSend").disabled=false; return; }
+  google.script.run.withSuccessHandler(res=>{
+    $("fSend").disabled=false;
+    msg("fMsg",res?.message||"Išsaugota ✓","ok");
+    resetForm(); loadQ(); loadBad(); flushOff();
+  }).withFailureHandler(e=>{
+    enqOff(payload); $("offlineBar").style.display="block";
+    $("fSend").disabled=false;
+    msg("fMsg",e?.message||"Nepavyko — įrašas įdėtas į eilę.","warn");
+    resetForm();
+  }).saveNote(payload);
+}
+</script>
+</body>
+</html>

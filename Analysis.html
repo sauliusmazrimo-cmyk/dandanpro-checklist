@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <base target="_top">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Eco Analizė · DanDanPro Logistics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:      #F0F2F5;
+      --surface: #FFFFFF;
+      --border:  #DDE1E8;
+      --txt:     #111827;
+      --muted:   #6B7280;
+      --brand:   #0057FF;
+      --brand2:  #0041CC;
+      --green:   #15803D;
+      --red:     #B91C1C;
+      --amber:   #B45309;
+      --blue:    #1D4ED8;
+      --green-bg:#DCFCE7; --green-bd:#BBF7D0;
+      --red-bg:  #FEE2E2; --red-bd:  #FECACA;
+      --amber-bg:#FEF3C7; --amber-bd:#FDE68A;
+      --blue-bg: #DBEAFE; --blue-bd: #BFDBFE;
+      --shadow:  0 1px 4px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --r: 12px;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font); font-size: 15px; color: var(--txt);
+      background: var(--bg); min-height: 100vh; -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      height: 56px; background: var(--brand);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; gap: 16px;
+      box-shadow: 0 2px 12px rgba(0,87,255,.3);
+    }
+    .tb-left { display: flex; align-items: center; gap: 14px; }
+    .tb-brand { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; }
+    .tb-brand::before {
+      content: ''; width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,.18);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='1' y='3' width='15' height='13' rx='2'/%3E%3Cpath d='M16 8h4l3 3v5h-7V8z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center; background-size: 16px;
+    }
+    .tb-div { width: 1px; height: 20px; background: rgba(255,255,255,.2); }
+    .tb-page { font-size: 13px; color: rgba(255,255,255,.7); font-weight: 500; }
+    .tb-back {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600;
+      color: #fff; cursor: pointer; text-decoration: none; transition: background .15s;
+      white-space: nowrap;
+    }
+    .tb-back:hover { background: rgba(255,255,255,.22); }
+    .btn-export { display:inline-flex; align-items:center; gap:7px; background:#fff; color:var(--brand); border:none; border-radius:999px; padding:6px 16px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all .15s; font-family:var(--font); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+    .btn-export:hover { background:#f0f2f5; box-shadow:0 2px 8px rgba(0,0,0,.16); }
+    .btn-export:active { transform:scale(.97); }
+    .tb-updated { font-size: 12px; color: rgba(255,255,255,.5); font-family: var(--mono); white-space: nowrap; }
+
+    /* ── PAGE ── */
+    .page { padding: 20px 24px 48px; }
+    .page-hdr { margin-bottom: 20px; }
+    .page-hdr h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+    .page-hdr p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+    .tab {
+      padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+      border-radius: 8px 8px 0 0; color: var(--muted); border: 1px solid transparent;
+      border-bottom: none; transition: all .15s; margin-bottom: -2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tab:hover { color: var(--txt); background: rgba(0,0,0,.03); }
+    .tab.active { color: var(--brand); background: var(--surface); border-color: var(--border); border-bottom-color: var(--surface); font-weight: 700; }
+    .tab-badge { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+    .tab-badge.red   { background: var(--red-bg);   color: var(--red);   }
+    .tab-badge.green { background: var(--green-bg);  color: var(--green); }
+
+    /* ── TAB CONTENT ── */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── STATS ROW ── */
+    .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media(max-width:1100px){ .stats-row { grid-template-columns: repeat(3,1fr); } }
+    @media(max-width:640px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
+
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px 16px;
+      box-shadow: var(--shadow);
+    }
+    .stat-card.red   { border-left: 4px solid var(--red);   }
+    .stat-card.green { border-left: 4px solid var(--green); }
+    .stat-card.amber { border-left: 4px solid #F59E0B; }
+    .stat-card.blue  { border-left: 4px solid var(--blue);  }
+    .stat-card.neutral{ border-left: 4px solid var(--border); }
+
+    .stat-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .stat-val { font-size: 26px; font-weight: 700; font-family: var(--mono); letter-spacing: -1px; }
+    .stat-val.red   { color: var(--red);   }
+    .stat-val.green { color: var(--green); }
+    .stat-val.amber { color: var(--amber); }
+    .stat-val.blue  { color: var(--blue);  }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 20px; }
+    .section-hdr {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    .section-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .section-dot.red   { background: var(--red);   }
+    .section-dot.green { background: var(--green); }
+    .section-dot.amber { background: #F59E0B; }
+    .section-title { font-size: 15px; font-weight: 700; }
+    .section-count { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .section-desc { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+    /* ── TABLE ── */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .tbl-wrap { overflow-x: auto; }
+    .tbl { border-collapse: collapse; width: 100%; }
+    .tbl th {
+      text-align: left; font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      padding: 10px 16px; border-bottom: 2px solid var(--border);
+      background: #FAFBFC; white-space: nowrap;
+    }
+    .tbl td { padding: 11px 16px; border-bottom: 1px solid #F1F3F7; font-size: 14px; vertical-align: middle; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tbody tr:hover td { background: #F7F9FF; }
+
+    /* ── RANK ── */
+    .rank { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 500; }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 6px;
+      font-size: 12px; font-weight: 700; letter-spacing: .1px;
+      white-space: nowrap;
+    }
+    .badge.red   { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);   }
+    .badge.green { background: var(--green-bg);  color: var(--green); border: 1px solid var(--green-bd); }
+    .badge.amber { background: var(--amber-bg);  color: var(--amber); border: 1px solid var(--amber-bd); }
+    .badge.gray  { background: #F1F5F9; color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── VALUE CELLS ── */
+    .val-num { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+    .val-red   { color: var(--red);   }
+    .val-green { color: var(--green); }
+    .val-amber { color: var(--amber); }
+
+    /* ── BAR ── */
+    .bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .bar-bg { flex: 1; height: 6px; background: #E5E7EB; border-radius: 999px; overflow: hidden; min-width: 60px; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+    .bar-fill.red   { background: var(--red);   }
+    .bar-fill.green { background: var(--green); }
+    .bar-fill.amber { background: #F59E0B; }
+
+    /* ── DRIVER NAME ── */
+    .drv { font-weight: 600; font-size: 14px; }
+
+    /* ── EMPTY ── */
+    .empty { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+
+    /* ── LOADING ── */
+    #loading {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(240,242,245,.9); backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--brand); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-txt { font-size: 14px; color: var(--muted); font-weight: 600; }
+
+    /* ── MSG ── */
+    .msg-err {
+      margin: 20px; padding: 14px 18px; border-radius: 10px;
+      background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd);
+      font-size: 14px; font-weight: 600; display: none;
+    }
+
+
+    /* ── AMŽIAUS KORTELĖS ── */
+    .age-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+    .age-panel-hdr{display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1px solid var(--border);background:#FAFBFC;}
+    .age-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+    .age-title{font-size:14px;font-weight:700;}
+    .age-sub{font-size:12px;color:var(--muted);}
+    .letter-cards{display:flex;flex-wrap:wrap;gap:10px;padding:16px 20px;}
+    .lc{background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:130px;flex:1;max-width:180px;transition:box-shadow .15s;}
+    .lc:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);}
+    .lc-letter{font-size:28px;font-weight:800;font-family:var(--mono);letter-spacing:-1px;margin-bottom:8px;}
+    .lc-letter.good{color:var(--green);}
+    .lc-letter.bad{color:var(--red);}
+    .lc-letter.neutral{color:var(--amber);}
+    .lc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+    .lc-lbl{font-size:11px;color:var(--muted);font-weight:600;}
+    .lc-val{font-size:13px;font-weight:700;font-family:var(--mono);}
+    .lc-val.good{color:var(--green);}
+    .lc-val.bad{color:var(--red);}
+    .lc-val.neutral{color:var(--amber);}
+    .lc-val.blue{color:var(--blue);}
+    .lc-bar{height:4px;border-radius:999px;background:#E5E7EB;margin-top:6px;overflow:hidden;}
+    .lc-bar-fill{height:100%;border-radius:999px;}
+    /* ── GRID (2 lentelės šalia) ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:900px){ .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-txt">Kraunami eco duomenys…</div>
+</div>
+
+<div class="topbar">
+  <div class="tb-left">
+    <div class="tb-brand">UAB DanDanPro Logistics</div>
+    <div class="tb-div"></div>
+    <div class="tb-page">Eco Vairavimo Analizė</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span class="tb-updated" id="updatedAt"></span>
+    <a class="tb-back" href="javascript:void(0)" onclick="goBack()">← Grįžti į CheckList</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-hdr">
+    <h1>Eco Vairavimo Analizė</h1>
+    <p>Volvo ir Mercedes vairuotojų balai · Kuro sąnaudos · Atnaujinama kiekvieną kartą atidarius</p>
+  </div>
+
+  <div class="msg-err" id="msgErr"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" data-tab="volvo" onclick="switchTab('volvo')">
+      🚛 Volvo
+      <span class="tab-badge red" id="volvoBadCount">—</span>
+      <span class="tab-badge green" id="volvoGoodCount">—</span>
+    </div>
+    <div class="tab" data-tab="mercedes" onclick="switchTab('mercedes')">
+      🚌 Mercedes
+      <span class="tab-badge red" id="mercedesBadCount">—</span>
+      <span class="tab-badge green" id="mercedesGoodCount">—</span>
+    </div>
+  </div>
+
+  <!-- EXPORT BUTTONS -->
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="btn-export" id="btnExportVolvo" onclick="exportExcel('volvo')" style="display:none;">
+      ⬇ Eksportuoti Volvo (.xlsx)
+    </button>
+    <button class="btn-export" id="btnExportMercedes" onclick="exportExcel('mercedes')" style="display:none;">
+      ⬇ Eksportuoti Mercedes (.xlsx)
+    </button>
+  </div>
+
+  <!-- VOLVO TAB -->
+  <div class="tab-content active" id="tab-volvo">
+
+    <div class="stats-row" id="volvoStats"></div>
+
+    <!-- Blogas balas + Blogas kuras šalia -->
+    <div class="two-col">
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot red"></div>
+          <div class="section-title">Blogas balas</div>
+          <div class="section-count" id="vBadBalCount"></div>
+          <div class="section-desc">Balas &lt; 9.00</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:100px;">Balas</th>
+                <th style="width:120px;">Įvertinimas</th>
+              </tr></thead>
+              <tbody id="vBadBal"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot amber"></div>
+          <div class="section-title">Didelės kuro sąnaudos</div>
+          <div class="section-count" id="vBadFuelCount"></div>
+          <div class="section-desc">Kuras &gt; 26.9 l/100km</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:110px;">Kuras</th>
+                <th style="width:120px;">Skirtumas</th>
+              </tr></thead>
+              <tbody id="vBadFuel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Geras balas + Geras kuras šalia -->
+    <div class="two-col">
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot green"></div>
+          <div class="section-title">Geras balas</div>
+          <div class="section-count" id="vGoodBalCount"></div>
+          <div class="section-desc">Balas &gt; 9.61</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:100px;">Balas</th>
+                <th style="width:120px;">Įvertinimas</th>
+              </tr></thead>
+              <tbody id="vGoodBal"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot green"></div>
+          <div class="section-title">Mažos kuro sąnaudos</div>
+          <div class="section-count" id="vGoodFuelCount"></div>
+          <div class="section-desc">Kuras &lt; 24 l/100km</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:110px;">Kuras</th>
+                <th style="width:120px;">Skirtumas</th>
+              </tr></thead>
+              <tbody id="vGoodFuel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- AMŽIAUS KORTELĖS - VOLVO -->
+    <div class="age-panel" id="volvoAgePanelEl">
+      <div class="age-panel-hdr">
+        <div class="age-icon" style="background:#DBEAFE;">🚛</div>
+        <div>
+          <div class="age-title">TP amžius pagal valstybinio numerio raidę</div>
+          <div class="age-sub">A = seniausias · Z = naujausias · Kiekviena raidė = skirtingi metai</div>
+        </div>
+      </div>
+      <div class="letter-cards" id="volvoLetterCards"></div>
+    </div>
+
+  </div><!-- /tab-volvo -->
+
+  <!-- MERCEDES TAB -->
+  <div class="tab-content" id="tab-mercedes">
+
+    <div class="stats-row" id="mercedesStats"></div>
+
+    <div class="two-col">
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot red"></div>
+          <div class="section-title">Blogas balas</div>
+          <div class="section-count" id="mBadBalCount"></div>
+          <div class="section-desc">Balas &lt; 9.00</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:100px;">Balas</th>
+                <th style="width:120px;">Įvertinimas</th>
+              </tr></thead>
+              <tbody id="mBadBal"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot amber"></div>
+          <div class="section-title">Didelės kuro sąnaudos</div>
+          <div class="section-count" id="mBadFuelCount"></div>
+          <div class="section-desc">Kuras &gt; 26.9 l/100km</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:110px;">Kuras</th>
+                <th style="width:120px;">Skirtumas</th>
+              </tr></thead>
+              <tbody id="mBadFuel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot green"></div>
+          <div class="section-title">Geras balas</div>
+          <div class="section-count" id="mGoodBalCount"></div>
+          <div class="section-desc">Balas &gt; 9.61</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:100px;">Balas</th>
+                <th style="width:120px;">Įvertinimas</th>
+              </tr></thead>
+              <tbody id="mGoodBal"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr">
+          <div class="section-dot green"></div>
+          <div class="section-title">Mažos kuro sąnaudos</div>
+          <div class="section-count" id="mGoodFuelCount"></div>
+          <div class="section-desc">Kuras &lt; 24 l/100km</div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:36px;">#</th>
+                <th>Vairuotojas</th>
+                <th style="width:110px;">Kuras</th>
+                <th style="width:120px;">Skirtumas</th>
+              </tr></thead>
+              <tbody id="mGoodFuel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- AMŽIAUS KORTELĖS - MERCEDES -->
+    <div class="age-panel" id="mercedesAgePanelEl">
+      <div class="age-panel-hdr">
+        <div class="age-icon" style="background:#DCFCE7;">🚌</div>
+        <div>
+          <div class="age-title">TP amžius pagal valstybinio numerio raidę</div>
+          <div class="age-sub">A = seniausias · Z = naujausias · Kiekviena raidė = skirtingi metai</div>
+        </div>
+      </div>
+      <div class="letter-cards" id="mercedesLetterCards"></div>
+    </div>
+
+  </div><!-- /tab-mercedes -->
+
+</div><!-- /.page -->
+
+<script>
+/* ── Tabs ── */
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.toggle("active", c.id==="tab-"+name));
+}
+
+/* ── Back ── */
+function goBack(){
+  if(window.history.length>1) window.history.back();
+}
+
+/* ── Utils ── */
+const esc = s=>(s||"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+const fmt = v=>v!==null&&v!==undefined ? Number(v).toFixed(2) : "—";
+
+function balBadge(bal){
+  if(bal===null) return `<span class="badge gray">—</span>`;
+  if(bal < 9)    return `<span class="badge red">Blogas</span>`;
+  if(bal > 9.61) return `<span class="badge green">Geras</span>`;
+  return `<span class="badge amber">Vidutinis</span>`;
+}
+
+function balBar(bal, max){
+  if(bal===null) return "";
+  const pct = Math.min(100, (bal/max)*100);
+  const col = bal<9?"red": bal>9.61?"green":"amber";
+  return `<div class="bar-wrap">
+    <span class="val-num val-${col}">${fmt(bal)}</span>
+    <div class="bar-bg"><div class="bar-fill ${col}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function fuelBar(kuras){
+  if(kuras===null) return "—";
+  const col = kuras>26.9?"amber": kuras<24?"green":"";
+  const diff = kuras > 26.9 ? "+" + (kuras-26.9).toFixed(1) : kuras < 24 ? "-"+(24-kuras).toFixed(1) : "±0";
+  return `<span class="val-num ${col?"val-"+col:""}">${fmt(kuras)}</span>`;
+}
+function fuelDiff(kuras){
+  if(kuras===null) return "—";
+  if(kuras > 26.9) return `<span class="badge amber">+${(kuras-26.9).toFixed(1)} l</span>`;
+  if(kuras < 24)   return `<span class="badge green">-${(24-kuras).toFixed(1)} l</span>`;
+  return `<span class="badge gray">Norma</span>`;
+}
+
+/* ── Render table ── */
+function renderBalTable(tbodyId, rows, maxBal){
+  const tb = document.getElementById(tbodyId);
+  if(!rows||!rows.length){ tb.innerHTML=`<tr><td colspan="4" class="empty">Nėra įrašų</td></tr>`; return; }
+  tb.innerHTML = rows.map((r,i)=>`<tr>
+    <td class="rank">${i+1}</td>
+    <td class="drv">${esc(r.name)}</td>
+    <td>${balBar(r.bal, maxBal||10)}</td>
+    <td>${balBadge(r.bal)}</td>
+  </tr>`).join("");
+}
+
+function renderFuelTable(tbodyId, rows){
+  const tb = document.getElementById(tbodyId);
+  if(!rows||!rows.length){ tb.innerHTML=`<tr><td colspan="4" class="empty">Nėra įrašų</td></tr>`; return; }
+  tb.innerHTML = rows.map((r,i)=>`<tr>
+    <td class="rank">${i+1}</td>
+    <td class="drv">${esc(r.name)}</td>
+    <td>${fuelBar(r.kuras)}</td>
+    <td>${fuelDiff(r.kuras)}</td>
+  </tr>`).join("");
+}
+
+/* ── Render stats ── */
+function renderStats(containerId, s, vehicle){
+  const el = document.getElementById(containerId);
+  el.innerHTML = `
+    <div class="stat-card red">
+      <div class="stat-lbl">Blogas balas</div>
+      <div class="stat-val red">${s.badBal}</div>
+      <div class="stat-sub">Balas &lt; 9.00</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-lbl">Geras balas</div>
+      <div class="stat-val green">${s.goodBal}</div>
+      <div class="stat-sub">Balas &gt; 9.61</div>
+    </div>
+    <div class="stat-card neutral">
+      <div class="stat-lbl">Vidutinis</div>
+      <div class="stat-val">${s.neutralBal}</div>
+      <div class="stat-sub">9.00 – 9.61</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-lbl">Vidutinis balas</div>
+      <div class="stat-val blue">${s.avgBal!==null?Number(s.avgBal).toFixed(2):"—"}</div>
+      <div class="stat-sub">Iš ${s.total} vairuotojų</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-lbl">Didel. kuras</div>
+      <div class="stat-val amber">${s.fuelBadCount}</div>
+      <div class="stat-sub">&gt; 26.9 l/100km</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-lbl">Mažas kuras</div>
+      <div class="stat-val green">${s.fuelGoodCount}</div>
+      <div class="stat-sub">&lt; 24 l/100km</div>
+    </div>
+  `;
+}
+
+
+/* ── Raidžių kortelės ── */
+function renderLetterCards(containerId, byLetter) {
+  const el = document.getElementById(containerId);
+  if(!el || !byLetter || !byLetter.length){
+    if(el) el.innerHTML = '<div style="padding:20px;color:#6B7280;font-size:14px;">Nėra numerių duomenų.</div>';
+    return;
+  }
+
+  // Surasti max balą ir min kurą normalizavimui
+  const balVals  = byLetter.map(d=>d.avgBal).filter(v=>v!=null);
+  const fuelVals = byLetter.map(d=>d.avgFuel).filter(v=>v!=null);
+  const maxBal   = balVals.length  ? Math.max(...balVals)  : 10;
+  const maxFuel  = fuelVals.length ? Math.max(...fuelVals) : 30;
+
+  el.innerHTML = byLetter.map(d => {
+    const bal  = d.avgBal  != null ? Number(d.avgBal).toFixed(2)  : "—";
+    const fuel = d.avgFuel != null ? Number(d.avgFuel).toFixed(2) : "—";
+
+    // Spalva pagal balą
+    const balCls  = d.avgBal  == null ? "neutral" : d.avgBal  < 9 ? "bad" : d.avgBal > 9.61 ? "good" : "neutral";
+    const fuelCls = d.avgFuel == null ? "neutral" : d.avgFuel > 26.9 ? "bad" : d.avgFuel < 24 ? "good" : "neutral";
+
+    // Baro plotis
+    const balW  = d.avgBal  != null ? Math.round(d.avgBal  / maxBal  * 100) : 0;
+    const fuelW = d.avgFuel != null ? Math.round(d.avgFuel / maxFuel * 100) : 0;
+    const fuelBarCol = d.avgFuel == null ? "#9CA3AF" : d.avgFuel > 26.9 ? "var(--amber)" : d.avgFuel < 24 ? "var(--green)" : "#6B7280";
+
+    // Raidės spalva – pagal balą
+    const letterCls = balCls;
+
+    return `<div class="lc">
+      <div class="lc-letter ${letterCls}">${d.letter}</div>
+      <div class="lc-row">
+        <span class="lc-lbl">TP kiekis</span>
+        <span class="lc-val blue">${d.count}</span>
+      </div>
+      <div class="lc-row">
+        <span class="lc-lbl">Vid. balas</span>
+        <span class="lc-val ${balCls}">${bal}</span>
+      </div>
+      <div class="lc-bar"><div class="lc-bar-fill" style="width:${balW}%;background:${balCls==='good'?'var(--green)':balCls==='bad'?'var(--red)':'var(--amber)'};"></div></div>
+      <div class="lc-row" style="margin-top:6px;">
+        <span class="lc-lbl">Vid. kuras</span>
+        <span class="lc-val ${fuelCls}">${fuel}</span>
+      </div>
+      <div class="lc-bar"><div class="lc-bar-fill" style="width:${fuelW}%;background:${fuelBarCol};"></div></div>
+    </div>`;
+  }).join("");
+}
+/* ── Render all ── */
+function renderAll(data){
+  document.getElementById("updatedAt").textContent = "Atnaujinta: " + (data.updated||"");
+
+  _volvoData = data.volvo;
+  _mercedesData = data.mercedes;
+
+  // Rodyti eksporto mygtukus
+  const bv = document.getElementById('btnExportVolvo');
+  const bm = document.getElementById('btnExportMercedes');
+  if(bv) bv.style.display = 'inline-flex';
+  if(bm) bm.style.display = 'inline-flex';
+
+  // VOLVO
+  const v = data.volvo;
+  if(v.error){
+    document.getElementById("msgErr").style.display="block";
+    document.getElementById("msgErr").textContent = "Volvo: " + v.error;
+  } else {
+    renderStats("volvoStats", v.stats, "Volvo");
+    document.getElementById("volvoBadCount").textContent  = v.stats.badBal;
+    document.getElementById("volvoGoodCount").textContent = v.stats.goodBal;
+
+    document.getElementById("vBadBalCount").textContent  = v.bad.length + " vairuotojai";
+    document.getElementById("vGoodBalCount").textContent = v.good.length + " vairuotojai";
+    document.getElementById("vBadFuelCount").textContent = v.fuelBad.length + " vairuotojai";
+    document.getElementById("vGoodFuelCount").textContent= v.fuelGood.length + " vairuotojai";
+
+    renderBalTable("vBadBal",  v.bad,  10);
+    renderBalTable("vGoodBal", v.good, 10);
+    renderFuelTable("vBadFuel",  v.fuelBad);
+    renderFuelTable("vGoodFuel", v.fuelGood);
+  }
+
+  // MERCEDES
+  const m = data.mercedes;
+  if(m.error){
+    document.getElementById("msgErr").style.display="block";
+    document.getElementById("msgErr").textContent += " | Mercedes: " + m.error;
+  } else {
+    renderStats("mercedesStats", m.stats, "Mercedes");
+    document.getElementById("mercedesBadCount").textContent  = m.stats.badBal;
+    document.getElementById("mercedesGoodCount").textContent = m.stats.goodBal;
+
+    document.getElementById("mBadBalCount").textContent  = m.bad.length + " vairuotojai";
+    document.getElementById("mGoodBalCount").textContent = m.good.length + " vairuotojai";
+    document.getElementById("mBadFuelCount").textContent = m.fuelBad.length + " vairuotojai";
+    document.getElementById("mGoodFuelCount").textContent= m.fuelGood.length + " vairuotojai";
+
+    renderBalTable("mBadBal",  m.bad,  10);
+    renderBalTable("mGoodBal", m.good, 10);
+    renderFuelTable("mBadFuel",  m.fuelBad);
+    renderFuelTable("mGoodFuel", m.fuelGood);
+  }
+
+  // Amžiaus diagramos
+  if(!v.error && v.byLetter) renderLetterCards("volvoLetterCards",    v.byLetter);
+  if(!m.error && m.byLetter) renderLetterCards("mercedesLetterCards", m.byLetter);
+
+  document.getElementById("loading").style.display="none";
+}
+
+/* ── Load ── */
+function load(){
+  if(!google?.script?.run?.getAnalysisData){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("msgErr").style.display="block";
+    document.getElementById("msgErr").textContent="Trūksta serverio funkcijos getAnalysisData(). Pridėk į Code.gs.";
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(renderAll)
+    .withFailureHandler(e=>{
+      document.getElementById("loading").style.display="none";
+      document.getElementById("msgErr").style.display="block";
+      document.getElementById("msgErr").textContent = e?.message||"Nepavyko užkrauti duomenų.";
+    })
+    .getAnalysisData();
+}
+
+
+/* ── Excel eksportas ── */
+let _volvoData = null;
+let _mercedesData = null;
+
+function exportExcel(vehicle){
+  const data = vehicle === 'volvo' ? _volvoData : _mercedesData;
+  if(!data){ alert('Duomenys dar neužkrauti.'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const label = vehicle === 'volvo' ? 'Volvo' : 'Mercedes';
+  const now = new Date().toLocaleDateString('lt-LT');
+
+  function makeRows(arr, type){
+    if(!arr || !arr.length) return [['Nėra įrašų']];
+    if(type === 'bal'){
+      return [['Nr.','Vairuotojas','Balas','Įvertinimas']].concat(
+        arr.map((r,i) => [
+          i+1,
+          r.name,
+          r.bal !== null ? r.bal : '',
+          r.bal === null ? '' : r.bal < 9 ? 'Blogas' : r.bal > 9.61 ? 'Geras' : 'Vidutinis'
+        ])
+      );
+    } else {
+      return [['Nr.','Vairuotojas','Kuras (l/100km)','Įvertinimas']].concat(
+        arr.map((r,i) => [
+          i+1,
+          r.name,
+          r.kuras !== null ? r.kuras : '',
+          r.kuras === null ? '' : r.kuras > 26.9 ? 'Blogas (>' + r.kuras.toFixed(1) + ')' : r.kuras < 24 ? 'Geras (<' + r.kuras.toFixed(1) + ')' : 'Norma'
+        ])
+      );
+    }
+  }
+
+  // Statistika lapas
+  const s = data.stats;
+  const statsRows = [
+    ['UAB DanDanPro Logistics – Eco Vairavimo Analizė'],
+    ['Transporto priemonė:', label],
+    ['Data:', now],
+    [''],
+    ['RODIKLIS', 'REIKŠMĖ'],
+    ['Iš viso vairuotojų', s.total],
+    ['Blogas balas (< 9)', s.badBal],
+    ['Geras balas (> 9.61)', s.goodBal],
+    ['Vidutinis balas (9–9.61)', s.neutralBal],
+    ['Vidutinis balas', s.avgBal !== null ? Number(s.avgBal).toFixed(2) : '—'],
+    [''],
+    ['Didelės kuro sąnaudos (> 26.9)', s.fuelBadCount],
+    ['Mažos kuro sąnaudos (< 24)', s.fuelGoodCount],
+    ['Vidutinės kuro sąnaudos', s.avgFuel !== null ? Number(s.avgFuel).toFixed(2) + ' l/100km' : '—'],
+  ];
+
+  const wsStats = XLSX.utils.aoa_to_sheet(statsRows);
+  wsStats['!cols'] = [{wch:35},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, wsStats, 'Santrauka');
+
+  // Blogas balas
+  const wsBadBal = XLSX.utils.aoa_to_sheet(makeRows(data.bad, 'bal'));
+  wsBadBal['!cols'] = [{wch:5},{wch:30},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsBadBal, 'Blogas balas');
+
+  // Geras balas
+  const wsGoodBal = XLSX.utils.aoa_to_sheet(makeRows(data.good, 'bal'));
+  wsGoodBal['!cols'] = [{wch:5},{wch:30},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsGoodBal, 'Geras balas');
+
+  // Didelės kuro sąnaudos
+  const wsBadFuel = XLSX.utils.aoa_to_sheet(makeRows(data.fuelBad, 'fuel'));
+  wsBadFuel['!cols'] = [{wch:5},{wch:30},{wch:18},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, wsBadFuel, 'Didelės kuro sąnaudos');
+
+  // Mažos kuro sąnaudos
+  const wsGoodFuel = XLSX.utils.aoa_to_sheet(makeRows(data.fuelGood, 'fuel'));
+  wsGoodFuel['!cols'] = [{wch:5},{wch:30},{wch:18},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, wsGoodFuel, 'Mažos kuro sąnaudos');
+
+  const fileName = label + '_Eco_Analize_' + now.replaceAll('.', '-') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+}
+
+load();
+</script>
+</body>
+</html>

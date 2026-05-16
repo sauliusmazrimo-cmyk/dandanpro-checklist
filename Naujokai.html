@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <base target="_top">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Naujokų analizė · DanDanPro Logistics</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+/* ── PIN APSAUGA ── */
+const ADMIN_PIN = "0000";
+let _pin = "";
+
+function pinKey(d){
+  if(_pin.length >= 4) return;
+  _pin += d;
+  updatePinDots();
+  if(_pin.length === 4) setTimeout(checkPin, 120);
+}
+function pinBack(){ _pin = _pin.slice(0,-1); updatePinDots(); document.getElementById("pinErr").textContent=""; }
+function pinClear(){ _pin = ""; updatePinDots(); document.getElementById("pinErr").textContent=""; }
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById("pd"+i);
+    if(el) el.classList.toggle("filled", i < _pin.length);
+  }
+}
+function checkPin(){
+  if(_pin === ADMIN_PIN){
+    document.getElementById("pinOverlay").style.display="none";
+  } else {
+    document.getElementById("pinErr").textContent="Neteisingas PIN. Bandykite dar kartą.";
+    _pin=""; updatePinDots();
+  }
+}
+/* Klaviatūra */
+document.addEventListener("keydown", e=>{
+  if(document.getElementById("pinOverlay").style.display==="none") return;
+  if(e.key>="0"&&e.key<="9") pinKey(e.key);
+  else if(e.key==="Backspace") pinBack();
+  else if(e.key==="Escape") pinClear();
+});
+
+</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#F0F2F5; --surf:#fff; --brd:#DDE1E8; --txt:#111827; --mut:#6B7280;
+      --brand:#0057FF; --green:#15803D; --red:#B91C1C; --blue:#1D4ED8;
+      --amber:#B45309; --purple:#7C3AED; --teal:#0F766E;
+      --gbg:#DCFCE7; --rbg:#FEE2E2; --bbg:#DBEAFE; --abg:#FEF3C7;
+      --pbg:#EDE9FE; --tbg:#CCFBF1;
+      --sh:0 1px 4px rgba(0,0,0,.08); --r:12px;
+      --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font);font-size:15px;color:var(--txt);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+    /* TOPBAR */
+    .tb{position:sticky;top:0;z-index:100;height:54px;background:var(--brand);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;box-shadow:0 2px 10px rgba(0,87,255,.3);}
+    .tb-brand{font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+    .tb-brand::before{content:'';width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='1' y='3' width='15' height='13' rx='2'/%3E%3Cpath d='M16 8h4l3 3v5h-7V8z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E") no-repeat center/15px;}
+    .tb-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;font-family:var(--font);}
+    .tb-btn:hover{background:rgba(255,255,255,.22);}
+
+    /* PAGE */
+    .page{padding:20px;}
+
+    /* FILTER */
+    .fbar{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);box-shadow:var(--sh);padding:14px 18px;margin-bottom:16px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;}
+    .ff{display:flex;flex-direction:column;gap:4px;}
+    .ff label{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;}
+    .ff input[type=date]{border:1px solid var(--brd);border-radius:8px;padding:8px 11px;font-size:14px;font-family:var(--mono);color:var(--txt);background:#fff;outline:none;cursor:pointer;}
+    .ff input[type=date]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.1);}
+    .btn-gen{display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+    .btn-gen:hover{opacity:.88;} .btn-gen:disabled{opacity:.5;cursor:not-allowed;}
+    .btn-xl{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--brand);border:1px solid var(--brd);border-radius:8px;padding:9px 15px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;box-shadow:var(--sh);}
+    .btn-xl:hover{background:#f5f5f5;} .btn-xl:disabled{opacity:.4;cursor:not-allowed;}
+    .fi{font-size:12px;color:var(--mut);font-family:var(--mono);margin-left:auto;align-self:center;}
+
+    /* ERR */
+    .err{padding:14px 16px;border-radius:10px;background:var(--rbg);color:var(--red);border:1px solid #FECACA;font-size:14px;font-weight:600;margin-bottom:14px;display:none;}
+
+    /* LOADING */
+    .ld{display:none;padding:60px;text-align:center;}
+    .ld.show{display:block;}
+    .spinner{width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* STAT CARDS */
+    .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
+    @media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr);}}
+    .sc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);}
+    .sc-l{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+    .sc-v{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;}
+    .sc-s{font-size:11px;color:var(--mut);margin-top:3px;}
+
+    /* PANEL */
+    .panel{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:16px;overflow:hidden;}
+    .ph{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--brd);background:#FAFBFC;}
+    .ph-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+    .ph-title{font-size:14px;font-weight:700;}
+    .ph-sub{font-size:12px;color:var(--mut);}
+
+    /* GRID LAYOUTS */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+    .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+    @media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+    /* CHART */
+    .chart-wrap{padding:16px;}
+    canvas{display:block;width:100%;max-height:280px;}
+
+    /* DONUT GROUPS */
+    .donut-wrap{display:flex;align-items:center;gap:20px;padding:16px 20px;}
+    .donut-canvas{width:180px;height:180px;flex-shrink:0;}
+    .donut-legend{flex:1;display:flex;flex-direction:column;gap:8px;}
+    .dl-item{display:flex;align-items:center;gap:8px;}
+    .dl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .dl-name{font-size:13px;font-weight:600;flex:1;}
+    .dl-count{font-family:var(--mono);font-size:13px;font-weight:700;}
+    .dl-pct{font-size:11px;color:var(--mut);font-family:var(--mono);}
+
+    /* PROGRESS BARS */
+    .prog-list{padding:14px 20px;display:flex;flex-direction:column;gap:10px;}
+    .prog-item{display:flex;align-items:center;gap:10px;}
+    .prog-lbl{font-size:13px;font-weight:600;min-width:90px;}
+    .prog-bg{flex:1;height:12px;background:#F1F3F7;border-radius:999px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:999px;transition:width .5s ease;}
+    .prog-val{font-family:var(--mono);font-size:12px;font-weight:700;min-width:30px;text-align:right;}
+    .prog-pct{font-size:11px;color:var(--mut);font-family:var(--mono);min-width:34px;}
+
+    /* TABLE */
+    .tw{overflow-x:auto;}
+    .tbl{border-collapse:collapse;width:100%;}
+    .tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:2px solid var(--brd);background:#FAFBFC;white-space:nowrap;}
+    .tbl th.r{text-align:right;}
+    .tbl td{padding:10px 14px;border-bottom:1px solid #F1F3F7;font-size:13px;vertical-align:middle;}
+    .tbl tr:last-child td{border-bottom:none;}
+    .tbl tbody tr:hover td{background:#F7F9FF;}
+    .tbl td.r{text-align:right;font-family:var(--mono);font-weight:600;}
+    .tbl tfoot td{background:#FAFBFC;font-weight:700;border-top:2px solid var(--brd);}
+
+    .bar-cell{display:flex;align-items:center;gap:8px;}
+    .bar-bg{flex:1;height:9px;background:#F1F3F7;border-radius:999px;overflow:hidden;min-width:60px;}
+    .bar-fill{height:100%;border-radius:999px;}
+
+    /* BADGE */
+    .bdg{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;}
+    .bdg-g{background:var(--gbg);color:var(--green);}
+    .bdg-r{background:var(--rbg);color:var(--red);}
+    .bdg-a{background:var(--abg);color:var(--amber);}
+    .bdg-b{background:var(--bbg);color:var(--blue);}
+    .bdg-p{background:var(--pbg);color:var(--purple);}
+    .bdg-t{background:var(--tbg);color:var(--teal);}
+
+    /* TEST SCORE BAR */
+    .score-bar{height:16px;background:linear-gradient(90deg,#FEE2E2,#FEF3C7,#DCFCE7);border-radius:999px;position:relative;margin:4px 0;}
+    .score-marker{position:absolute;top:-3px;width:4px;height:22px;background:var(--brand);border-radius:2px;transform:translateX(-50%);}
+
+    .empty{padding:40px;text-align:center;color:var(--mut);font-size:14px;}
+    .footer{margin-top:8px;padding:10px;border-radius:10px;border:1px solid #FECACA;background:#FEF2F2;color:var(--red);font-size:12px;font-weight:600;text-align:center;}
+  </style>
+</head>
+<body>
+
+<div id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-logo">🔐</div>
+    <div class="pin-title">UAB DanDanPro Logistics</div>
+    <div class="pin-sub">Įveskite administratoriaus PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinKey('1')">1</button>
+      <button class="pin-btn" onclick="pinKey('2')">2</button>
+      <button class="pin-btn" onclick="pinKey('3')">3</button>
+      <button class="pin-btn" onclick="pinKey('4')">4</button>
+      <button class="pin-btn" onclick="pinKey('5')">5</button>
+      <button class="pin-btn" onclick="pinKey('6')">6</button>
+      <button class="pin-btn" onclick="pinKey('7')">7</button>
+      <button class="pin-btn" onclick="pinKey('8')">8</button>
+      <button class="pin-btn" onclick="pinKey('9')">9</button>
+      <button class="pin-btn" onclick="pinClear()" style="font-size:14px;color:#6B7280;">✕</button>
+      <button class="pin-btn" onclick="pinKey('0')">0</button>
+      <button class="pin-btn" onclick="pinBack()" style="font-size:14px;color:#6B7280;">⌫</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+
+<div class="tb">
+  <div class="tb-brand">UAB DanDanPro Logistics &nbsp;·&nbsp; Naujokų analizė</div>
+  <button class="tb-btn" onclick="window.close()">✕ Uždaryti</button>
+</div>
+
+<div class="page">
+
+  <div class="fbar">
+    <div class="ff"><label>Data nuo</label><input type="date" id="dateFrom"/></div>
+    <div class="ff"><label>Data iki</label><input type="date" id="dateTo"/></div>
+    <button class="btn-gen" id="btnGen" onclick="generate()">⟳ Generuoti</button>
+    <button class="btn-xl"  id="btnXl"  onclick="exportXl()" disabled>⬇ Excel</button>
+    <div class="fi" id="fi"></div>
+  </div>
+
+  <div class="err" id="err"></div>
+  <div class="ld" id="ld"><div class="spinner"></div>Kraunama…</div>
+  <div id="out"></div>
+
+  <div class="footer">UAB DanDanPro Logistics nuosavybė · Dalintis, kopijuoti ar platinti – draudžiama</div>
+</div>
+
+<script>
+const g   = id => document.getElementById(id);
+const esc = s  => (s||"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+const f2  = v  => v!=null ? Number(v).toFixed(1) : "—";
+const charts = {};
+
+function mkChart(id, type, data, opts){
+  if(charts[id]) charts[id].destroy();
+  const el=g(id); if(!el) return;
+  charts[id]=new Chart(el.getContext("2d"),{type,data,options:opts});
+}
+
+/* Datos */
+function initDates(){
+  const to=new Date(), from=new Date();
+  from.setFullYear(from.getFullYear()-2);
+  g("dateFrom").value=from.toISOString().slice(0,10);
+  g("dateTo").value=to.toISOString().slice(0,10);
+}
+
+/* Generuoti */
+let _data=null;
+function generate(){
+  const from=g("dateFrom").value, to=g("dateTo").value;
+  if(!from||!to){showErr("Pasirink abi datas.");return;}
+  showErr("");
+  g("btnGen").disabled=true;
+  g("ld").classList.add("show");
+  g("out").innerHTML="";
+  g("btnXl").disabled=true;
+
+  if(!google?.script?.run?.getNaujokai){
+    g("ld").classList.remove("show"); g("btnGen").disabled=false;
+    showErr("Trūksta getNaujokai() funkcijos Code.gs."); return;
+  }
+
+  google.script.run
+    .withSuccessHandler(d=>{
+      g("btnGen").disabled=false; g("ld").classList.remove("show");
+      if(d.error){showErr(d.error);return;}
+      if(!d.total){
+        g("out").innerHTML=`<div class="empty">Pasirinktu laikotarpiu duomenų nerasta.<br><small style="color:#9CA3AF;">Pabandyk platesnį intervalą.</small></div>`;
+        return;
+      }
+      _data=d;
+      g("fi").textContent=from+" → "+to+" · "+d.generated;
+      render(d);
+      g("btnXl").disabled=false;
+    })
+    .withFailureHandler(e=>{
+      g("btnGen").disabled=false; g("ld").classList.remove("show");
+      showErr("Klaida: "+(e?.message||String(e)));
+    })
+    .getNaujokai(from,to);
+}
+
+function showErr(msg){ const e=g("err"); e.textContent=msg; e.style.display=msg?"block":"none"; }
+
+/* ═══ RENDER ═══ */
+function render(d){
+  const total=d.total;
+  const testAvg=d.testAvg, testMin=d.testMin, testMax=d.testMax;
+  const ls=d.lStats||{}, ps=d.pStats||{}, tg=d.testGroups||{};
+  const nat=d.natList||[], ml=d.monthList||[];
+
+  /* ── STAT KORTELĖS ── */
+  const gerasCount = ps["Geras"]||0;
+  const blogasCount= ps["Blogas"]||0;
+  const ms=d.mStats||{};
+  const tinkCount  = ms["T"]||0;
+  const neTinkCount= ms["N"]||0;
+  const zaliasCount= ls["Ž"]||0;
+  const patyrCount = ls["P"]||0;
+  const grizCount  = ls["Grįžo"]||0;
+
+  const statsHtml=`<div class="stats">
+    <div class="sc" style="border-left:4px solid var(--brand);">
+      <div class="sc-l">Viso naujokų</div>
+      <div class="sc-v" style="color:var(--brand);">${total}</div>
+      <div class="sc-s">Per pasirinktą laikotarpį</div>
+    </div>
+    <div class="sc" style="border-left:4px solid var(--blue);">
+      <div class="sc-l">Vid. testo balas</div>
+      <div class="sc-v" style="color:var(--blue);">${testAvg!=null?f2(testAvg):"—"}</div>
+      <div class="sc-s">Min: ${testMin!=null?f2(testMin):"—"} · Max: ${testMax!=null?f2(testMax):"—"}</div>
+    </div>
+    <div class="sc" style="border-left:4px solid var(--green);">
+      <div class="sc-l">Žali (nauji)</div>
+      <div class="sc-v" style="color:var(--green);">${zaliasCount}</div>
+      <div class="sc-s">${total?Math.round(zaliasCount/total*100):0}% nuo visų</div>
+    </div>
+    <div class="sc" style="border-left:4px solid var(--purple);">
+      <div class="sc-l">Patyrę</div>
+      <div class="sc-v" style="color:var(--purple);">${patyrCount}</div>
+      <div class="sc-s">${total?Math.round(patyrCount/total*100):0}% nuo visų</div>
+    </div>
+    <div class="sc" style="border-left:4px solid var(--teal);">
+      <div class="sc-l">Grįžo</div>
+      <div class="sc-v" style="color:var(--teal);">${grizCount}</div>
+      <div class="sc-s">${total?Math.round(grizCount/total*100):0}% nuo visų</div>
+    </div>
+    <div class="sc" style="border-left:4px solid var(--green);">
+      <div class="sc-l">Geri vairuotojai</div>
+      <div class="sc-v" style="color:var(--green);">${gerasCount}</div>
+      <div class="sc-s">${total?Math.round(gerasCount/total*100):0}% · Blogi: ${blogasCount}</div>
+    </div>
+  </div>`;
+
+  /* ── TESTO BALAS – vizualinis ── */
+  const avgPct = testAvg!=null ? Math.min(100, Math.max(0, testAvg)) : 50;
+  const testBarHtml=`<div class="panel">
+    <div class="ph">
+      <div class="ph-icon" style="background:var(--bbg);">📝</div>
+      <div><div class="ph-title">Testo rezultatai</div><div class="ph-sub">Pasiskirstymas pagal rezultatų grupes</div></div>
+    </div>
+    <div style="padding:16px 20px 8px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--mut);">Vidurkis</div>
+        <div class="score-bar" style="flex:1;">
+          <div class="score-marker" style="left:${avgPct}%;"></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--blue);">${testAvg!=null?f2(testAvg):"—"}</div>
+      </div>
+    </div>
+    <div class="prog-list">
+      ${[
+        {k:"81–100",col:"#15803D",bg:var_gbg},
+        {k:"61–80", col:"#1D4ED8",bg:"#DBEAFE"},
+        {k:"41–60", col:"#B45309",bg:"#FEF3C7"},
+        {k:"0–40",  col:"#B91C1C",bg:"#FEE2E2"},
+      ].map(g2=>{
+        const v=tg[g2.k]||0;
+        const pct=total?Math.round(v/total*100):0;
+        const mxG=Math.max(...Object.values(tg),1);
+        const bw=Math.round(v/mxG*100);
+        return `<div class="prog-item">
+          <div class="prog-lbl">${g2.k} balų</div>
+          <div class="prog-bg"><div class="prog-fill" style="width:${bw}%;background:${g2.col};"></div></div>
+          <div class="prog-val" style="color:${g2.col};">${v}</div>
+          <div class="prog-pct">${pct}%</div>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="chart-wrap" style="padding:8px 20px 16px;">
+      <canvas id="testChart" style="max-height:200px;"></canvas>
+    </div>
+  </div>`;
+
+  /* ── L ir P ŠALIA ── */
+  const lColors={"Ž":"#15803D","P":"#7C3AED","Grįžo":"#0F766E","Kita":"#9CA3AF"};
+  const lLabels={"Ž":"Žalias (naujas)","P":"Patyręs","Grįžo":"Grįžo","Kita":"Kita"};
+  const pColors={"Geras":"#15803D","Vidutinis":"#B45309","Blogas":"#B91C1C","Nenurodyta":"#9CA3AF"};
+
+  function donutPanel(icon,bg,title,sub,canvasId,statsObj,colMap,labMap){
+    const entries=Object.keys(statsObj).filter(k=>statsObj[k]>0);
+    const tot2=entries.reduce((s,k)=>s+statsObj[k],0);
+    const palette=entries.map(k=>colMap[k]||"#9CA3AF");
+    return `<div class="panel">
+      <div class="ph"><div class="ph-icon" style="background:${bg};">${icon}</div>
+        <div><div class="ph-title">${title}</div><div class="ph-sub">${sub}</div></div>
+      </div>
+      <div class="donut-wrap">
+        <canvas class="donut-canvas" id="${canvasId}"></canvas>
+        <div class="donut-legend">
+          ${entries.map(k=>{
+            const p=tot2?Math.round(statsObj[k]/tot2*100):0;
+            const col=colMap[k]||"#9CA3AF";
+            const lbl=labMap?labMap[k]||k:k;
+            return `<div class="dl-item">
+              <div class="dl-dot" style="background:${col};"></div>
+              <div class="dl-name">${esc(lbl)}</div>
+              <div class="dl-count" style="color:${col};">${statsObj[k]}</div>
+              <div class="dl-pct">${p}%</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const lHtml = donutPanel("🏷️","var(--gbg)","Tipas (L stulpelis)","Žalias / Patyręs / Grįžo","lChart",ls,lColors,lLabels);
+  const pHtml = donutPanel("⭐","var(--abg)","Vairuotojo kokybė (P)","Geras / Vidutinis / Blogas","pChart",ps,pColors,null);
+
+  /* ── TAUTYBĖS ── */
+  const palette=["#1D4ED8","#15803D","#B45309","#7C3AED","#0891B2","#DB2777","#059669","#D97706","#4F46E5","#DC2626","#065F46","#92400E","#9CA3AF","#374151"];
+  const maxC=nat[0]?.count||1;
+  const natRows=nat.map((n,i)=>{
+    const p=total?Math.round(n.count/total*100):0;
+    const bw=Math.round(n.count/maxC*100);
+    const col=palette[i%palette.length];
+    const bc=p>25?"bdg-b":p>12?"bdg-g":p>5?"bdg-a":"bdg-p";
+    return `<tr>
+      <td><span style="font-weight:700;color:${col};">${i+1}.</span> <strong>${esc(n.nat)}</strong></td>
+      <td><div class="bar-cell">
+        <div class="bar-bg"><div class="bar-fill" style="width:${bw}%;background:${col};"></div></div>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:700;min-width:24px;text-align:right;">${n.count}</span>
+      </div></td>
+      <td class="r">${p}%</td>
+      <td><span class="bdg ${bc}">${p>25?"Dominuoja":p>12?"Daug":p>5?"Vidutiniškai":"Mažai"}</span></td>
+    </tr>`;
+  }).join("");
+
+  const natHtml=`<div class="panel">
+    <div class="ph"><div class="ph-icon" style="background:var(--pbg);">🌍</div>
+      <div><div class="ph-title">Tautybių suvestinė</div><div class="ph-sub">${nat.length} tautybių · ${total} naujokų</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Tautybė</th><th>Pasiskirstymas</th><th class="r">%</th><th>Lygis</th></tr></thead>
+        <tbody>${natRows||'<tr><td colspan="4" class="empty">Nėra</td></tr>'}</tbody>
+        <tfoot><tr><td>IŠ VISO</td><td></td><td class="r">100%</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="chart-wrap"><canvas id="natChart" style="max-height:300px;"></canvas></div>
+    </div>
+  </div>`;
+
+  /* ── KALENDORINĖ DIAGRAMA ── */
+  const calHtml=ml.length>0?`<div class="panel">
+    <div class="ph"><div class="ph-icon" style="background:var(--abg);">📅</div>
+      <div><div class="ph-title">Pagal mėnesį</div><div class="ph-sub">Kiek naujokų vertinta kiekvieną mėnesį</div></div>
+    </div>
+    <div class="chart-wrap" style="padding:20px;">
+      <canvas id="calChart" style="max-height:240px;"></canvas>
+    </div>
+  </div>`:``;
+
+  // M panel
+  const mColors={"T":"#15803D","N":"#B91C1C","Nenurodyta":"#9CA3AF"};
+  const mHtml = donutPanel("✅","var(--gbg)","Tinkamumas (M stulpelis)","Tinkamas / Netinkamas","mChart",ms,mColors,{"T":"Tinkamas","N":"Netinkamas","Nenurodyta":"Nenurodyta"});
+
+  g("out").innerHTML = statsHtml + testBarHtml + `<div class="three-col">${lHtml}${pHtml}${mHtml}</div>` + natHtml + calHtml;
+
+  /* Grafikai */
+  setTimeout(()=>{
+    // Testo grupės
+    mkChart("testChart","bar",
+      {labels:["0–40","41–60","61–80","81–100"],
+       datasets:[{label:"Naujokų",data:[tg["0–40"]||0,tg["41–60"]||0,tg["61–80"]||0,tg["81–100"]||0],
+         backgroundColor:["#FECACA","#FDE68A","#BFDBFE","#BBF7D0"],
+         borderColor:["#B91C1C","#B45309","#1D4ED8","#15803D"],
+         borderWidth:2,borderRadius:6}]},
+      {responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.raw+" naujokų"}}},
+       scales:{y:{beginAtZero:true,grid:{color:"#F1F3F7"},ticks:{stepSize:1}},x:{grid:{display:false}}}}
+    );
+    // L donut
+    const lEnt=Object.keys(ls).filter(k=>ls[k]>0);
+    if(lEnt.length) mkChart("lChart","doughnut",
+      {labels:lEnt.map(k=>lLabels[k]||k),datasets:[{data:lEnt.map(k=>ls[k]),backgroundColor:lEnt.map(k=>lColors[k]||"#9CA3AF"),borderWidth:2,borderColor:"#fff"}]},
+      {responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.label+": "+c.raw}}},cutout:"65%"}
+    );
+    // P donut
+    const pEnt=Object.keys(ps).filter(k=>ps[k]>0);
+    if(pEnt.length) mkChart("pChart","doughnut",
+      {labels:pEnt,datasets:[{data:pEnt.map(k=>ps[k]),backgroundColor:pEnt.map(k=>pColors[k]||"#9CA3AF"),borderWidth:2,borderColor:"#fff"}]},
+      {responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.label+": "+c.raw}}},cutout:"65%"}
+    );
+    // M donut
+    const mEnt=Object.keys(ms).filter(k=>ms[k]>0);
+    if(mEnt.length) mkChart("mChart","doughnut",
+      {labels:mEnt.map(k=>k==="T"?"Tinkamas":k==="N"?"Netinkamas":"Nenurodyta"),datasets:[{data:mEnt.map(k=>ms[k]),backgroundColor:mEnt.map(k=>mColors[k]||"#9CA3AF"),borderWidth:2,borderColor:"#fff"}]},
+      {responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.label+": "+c.raw}}},cutout:"65%"}
+    );
+    // Tautybių skritulinė
+    const top=nat.slice(0,12);
+    const other=nat.slice(12).reduce((s,n)=>s+n.count,0);
+    const labels=[...top.map(n=>n.nat),...(other>0?["Kitos"]:[])];
+    const vals=[...top.map(n=>n.count),...(other>0?[other]:[])];
+    mkChart("natChart","doughnut",
+      {labels,datasets:[{data:vals,backgroundColor:palette,borderWidth:2,borderColor:"#fff"}]},
+      {responsive:true,plugins:{legend:{position:"right",labels:{font:{size:11,family:"DM Sans"},padding:6}},tooltip:{callbacks:{label:c=>" "+c.label+": "+c.raw+" ("+Math.round(c.raw/total*100)+"%)"}}}}
+    );
+    // Kalendorinė
+    if(ml.length>0 && g("calChart")){
+      const calLabels=ml.map(m=>new Date(m.month+"-01").toLocaleDateString("lt-LT",{year:"numeric",month:"short"}));
+      mkChart("calChart","line",
+        {labels:calLabels,datasets:[{label:"Naujokų",data:ml.map(m=>m.count),
+          backgroundColor:"rgba(0,87,255,.12)",borderColor:"#0057FF",borderWidth:2.5,
+          pointRadius:4,pointHoverRadius:7,pointBackgroundColor:"#0057FF",
+          pointBorderColor:"#fff",pointBorderWidth:2,tension:0.35,fill:true}]},
+        {responsive:true,interaction:{mode:"index",intersect:false},
+         plugins:{legend:{display:false},tooltip:{backgroundColor:"#fff",borderColor:"#DDE1E8",borderWidth:1,titleColor:"#111827",bodyColor:"#374151",padding:10,callbacks:{label:c=>" "+c.raw+" naujokų"}}},
+         scales:{y:{beginAtZero:true,grid:{color:"#F1F3F7"},ticks:{stepSize:1,font:{size:11}}},x:{grid:{color:"#F9FAFB"},ticks:{font:{size:11,family:"DM Mono"},maxRotation:45}}}}
+      );
+    }
+  },50);
+}
+
+// Workaround for template literal issue
+const var_gbg = "#DCFCE7";
+
+/* ── EXCEL ── */
+function exportXl(){
+  if(!_data) return;
+  const d=_data, wb=XLSX.utils.book_new();
+  const rows=[
+    ["UAB DanDanPro Logistics – Naujokų analizė"],
+    ["Laikotarpis:", d.dateFrom+" → "+d.dateTo],
+    ["Sugeneruota:", d.generated],[""],
+    ["BENDRA STATISTIKA"],
+    ["Viso naujokų", d.total],
+    ["Vid. testo balas", d.testAvg!=null?Number(d.testAvg).toFixed(1):"—"],
+    ["Testo min.", d.testMin!=null?Number(d.testMin).toFixed(1):"—"],
+    ["Testo max.", d.testMax!=null?Number(d.testMax).toFixed(1):"—"],[""],
+    ["TIPAS (L)"],["Tipas","Kiekis","%"]
+  ];
+  Object.keys(d.lStats||{}).forEach(k=>rows.push([k,d.lStats[k],d.total?Math.round(d.lStats[k]/d.total*100):0]));
+  rows.push([""],["TINKAMUMAS (M)"],["Reikšmė","Kiekis","%"]);
+  Object.keys(d.mStats||{}).forEach(k=>rows.push([k==="T"?"Tinkamas":k==="N"?"Netinkamas":"Nenurodyta",(d.mStats||{})[k],d.total?Math.round((d.mStats||{})[k]/d.total*100):0]));
+  rows.push([""],["KOKYBĖ (P)"],["Kokybė","Kiekis","%"]);
+  Object.keys(d.pStats||{}).forEach(k=>rows.push([k,d.pStats[k],d.total?Math.round(d.pStats[k]/d.total*100):0]));
+  rows.push([""],["TESTO GRUPĖS"],["Grupė","Kiekis","%"]);
+  Object.keys(d.testGroups||{}).forEach(k=>rows.push([k,d.testGroups[k],d.total?Math.round(d.testGroups[k]/d.total*100):0]));
+  rows.push([""],["TAUTYBĖS"],["Tautybė","Kiekis","%"]);
+  (d.natList||[]).forEach(n=>rows.push([n.nat,n.count,d.total?Math.round(n.count/d.total*100):0]));
+  rows.push([""],["PAGAL MĖNESĮ"],["Mėnuo","Kiekis"]);
+  (d.monthList||[]).forEach(m=>rows.push([m.month,m.count]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:28},{wch:14},{wch:8}];
+  XLSX.utils.book_append_sheet(wb,ws,"Naujokų analizė");
+  XLSX.writeFile(wb,"Naujokai_"+d.dateFrom+"_"+d.dateTo+".xlsx");
+}
+
+initDates();
+</script>
+</body>
+</html>
